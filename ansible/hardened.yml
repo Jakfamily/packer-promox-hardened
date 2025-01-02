@@ -1,0 +1,32 @@
+---
+- name: Run demo playbook
+  hosts: all
+  become: yes
+  tasks:
+    - name: Vérifier la connectivité réseau
+      ping:
+
+    - name: Récupérer les informations du serveur
+      setup:
+
+    - name: Afficher les utilisateurs
+      command:
+        cmd: cat /etc/passwd
+
+    - name: Mettre à jour la liste des paquets
+      apt:
+        update_cache: yes
+      register: update_result
+
+    - name: Afficher les résultats de la mise à jour
+      debug:
+        var: update_result
+
+    - name: Mettre à jour tous les paquets
+      apt:
+        upgrade: dist
+      register: upgrade_result
+
+    - name: Afficher les résultats de la mise à jour des paquets
+      debug:
+        var: upgrade_result

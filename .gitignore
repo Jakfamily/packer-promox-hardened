@@ -1,0 +1,5 @@
+# Ignorer uniquement secrets.pkrvars.hcl
+secrets.pkrvars.hcl
+
+# Ou ignorer tous les fichiers .pkrvars.hcl
+*.pkrvars.hcl
