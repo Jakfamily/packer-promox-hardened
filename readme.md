@@ -86,7 +86,6 @@ Ce projet met en place une infrastructure automatisée utilisant des outils tels
 
 - Intégration complète avec **Terraform** pour orchestrer le déploiement sur Proxmox.
 - Ajout de tests automatisés pour valider les configurations.
-- Exploration de nouveaux outils comme **NixOS** ou **Kubernetes**.
 
 ---
 
