@@ -1,32 +1,161 @@
 ---
-- name: Run demo playbook
+- name: Durcissement CIS
   hosts: all
   become: yes
   tasks:
-    - name: Vérifier la connectivité réseau
-      ping:
+    # 1. Gestion des utilisateurs et des mots de passe
+    - name: Désactiver le compte root
+      user:
+        name: root
+        shell: /sbin/nologin
 
-    - name: Récupérer les informations du serveur
-      setup:
+    - name: Configurer la politique de mots de passe
+      lineinfile:
+        path: /etc/security/pwquality.conf
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      with_items:
+        - { regexp: "^minlen", line: "minlen = 14" }
+        - { regexp: "^minclass", line: "minclass = 4" }
 
-    - name: Afficher les utilisateurs
-      command:
-        cmd: cat /etc/passwd
+    - name: Configurer les expirations des mots de passe
+      lineinfile:
+        path: /etc/login.defs
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      with_items:
+        - { regexp: "^PASS_MAX_DAYS", line: "PASS_MAX_DAYS 90" }
+        - { regexp: "^PASS_MIN_DAYS", line: "PASS_MIN_DAYS 7" }
+        - { regexp: "^PASS_WARN_AGE", line: "PASS_WARN_AGE 14" }
 
-    - name: Mettre à jour la liste des paquets
-      apt:
-        update_cache: yes
-      register: update_result
+    # 2. Sécurisation des services SSH
+    - name: Désactiver le login root via SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^PermitRootLogin"
+        line: "PermitRootLogin no"
+        state: present
 
-    - name: Afficher les résultats de la mise à jour
+    - name: Activer uniquement le protocole SSH 2
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^Protocol"
+        line: "Protocol 2"
+        state: present
+
+    - name: Restreindre l'accès SSH aux utilisateurs autorisés
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^AllowUsers"
+        line: "AllowUsers user1 user2"
+        state: present
+
+    - name: Redémarrer le service SSH
+      service:
+        name: sshd
+        state: restarted
+    #revoir fail2ban pour le mettre en place
+    # 3. Installation et configuration de Fail2Ban
+    - name: Installer Fail2Ban
+      package:
+        name: fail2ban
+        state: present
+
+    - name: Configurer Fail2Ban pour SSH
+      copy:
+        content: |
+          [sshd]
+          enabled = true
+          port = ssh
+          logpath = /var/log/auth.log
+          maxretry = 5
+        dest: /etc/fail2ban/jail.local
+      notify:
+        - Restart Fail2Ban
+
+    - name: Redémarrer Fail2Ban
+      service:
+        name: fail2ban
+        state: restarted
+    #verifier si logrotate et bien deployer
+    # 4. Rotation des logs
+    - name: Configurer la rotation des logs
+      copy:
+        content: |
+          /var/log/auth.log {
+              rotate 7
+              daily
+              missingok
+              compress
+              delaycompress
+              notifempty
+              create 640 syslog adm
+          }
+        dest: /etc/logrotate.d/auth
+
+    - name: Appliquer la configuration de logrotate
+      command: logrotate -f /etc/logrotate.conf
+
+    # 5. Vérification des signatures des paquets
+    - name: Activer les signatures de paquets pour APT
+      lineinfile:
+        path: /etc/apt/apt.conf.d/00trustedsigs
+        line: 'APT::Get::AllowUnauthenticated "false";'
+        state: present
+
+    - name: Mettre à jour les clés APT
+      command: apt-key update
+
+    # 6. Utilitaires d'administration de base
+    - name: Installer les utilitaires nécessaires
+      package:
+        name:
+          - htop
+          - vim
+          - net-tools
+          - curl
+          - wget
+          - lynis
+        state: present
+
+    # 7. Renforcement des configurations sudo
+    - name: Renforcer la configuration sudo
+      lineinfile:
+        path: /etc/sudoers
+        regexp: '^Defaults\s+.*requiretty'
+        line: "Defaults    requiretty"
+        state: present
+
+    - name: Restreindre les commandes sudo autorisées à des groupes spécifiques
+      lineinfile:
+        path: /etc/sudoers
+        line: "%admin ALL=(ALL) ALL"
+        state: present
+
+    # 8. Durcissement des paramètres kernel
+    - name: Configurer les paramètres sysctl
+      sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+      with_items:
+        - { name: "net.ipv4.icmp_echo_ignore_all", value: "1" }
+        - { name: "net.ipv4.tcp_syncookies", value: "1" }
+        - { name: "net.ipv4.ip_forward", value: "0" }
+
+    # 9. Conformité et audit final
+    - name: Utiliser Lynis pour vérifier la conformité
+      command: lynis audit system
+      register: lynis_output
+
+    - name: Afficher le rapport Lynis
       debug:
-        var: update_result
+        var: lynis_output.stdout
 
-    - name: Mettre à jour tous les paquets
-      apt:
-        upgrade: dist
-      register: upgrade_result
-
-    - name: Afficher les résultats de la mise à jour des paquets
-      debug:
-        var: upgrade_result
+  handlers:
+    - name: Restart Fail2Ban
+      service:
+        name: fail2ban
+        state: restarted
