@@ -281,6 +281,8 @@ Restreindre et sécuriser les connexions SSH.
 
 ---
 
+<!--
+
 ## 13. Gestion centralisée des journaux avec rsyslog
 
 ### Objectif
@@ -305,5 +307,7 @@ Configurer rsyslog pour la gestion centralisée des journaux.
 
 - En cas de problèmes, vérifiez les journaux pertinents (`/var/log/auth.log`, `/var/log/syslog`, etc.).
 - Assurez-vous que les services nécessaires sont actifs : `sudo systemctl status sshd`, `sudo systemctl status ufw`, etc.
+
+-->
 
 ---
