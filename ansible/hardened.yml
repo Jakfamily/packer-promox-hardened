@@ -45,13 +45,49 @@
       tags:
         - sudo
 
+    - name: Configurer les comptes système avec /usr/sbin/nologin
+      shell: |
+        awk -F: '($3 < 1000 && $3 != 0) {print $1}' /etc/passwd | while read -r user; do
+          if [ "$(getent passwd "$user" | cut -d: -f7)" != "/usr/sbin/nologin" ]; then
+            usermod -s /usr/sbin/nologin "$user";
+          fi
+        done
+      args:
+        warn: false
+      tags:
+        - users
+        - critical
+
     - name: ===== Bloc 2  Installation des packages =====
       debug:
         msg: "Installation des packages nécessaires."
 
-    - name: Installer les packages requis pour le durcissement et les utilitaires
+    - name: Vérifier si le système utilise UEFI
+      shell: "[ -d /sys/firmware/efi ] && echo 'UEFI' || echo 'BIOS'"
+      register: firmware_type
+      changed_when: false
+      tags:
+        - packages
+        - validation
+
+    - name: Installer les packages requis pour le système détecté
+      package:
+        name: >
+          {% if firmware_type.stdout.strip() == 'UEFI' %}
+            grub-efi-amd64-bin
+          {% else %}
+            grub-pc-bin
+          {% endif %}
+        state: present
+      register: firmware_packages
+      tags:
+        - packages
+        - critical
+
+    - name: Installer les autres packages requis pour le durcissement et les utilitaires
       package:
         name:
+          - grub-common
           - libpam-pwquality
           - fail2ban
           - ufw
@@ -66,9 +102,22 @@
           - lynis
           - aide
         state: present
+      register: common_packages
       tags:
         - packages
         - critical
+
+    - name: Enregistrer les packages installés dans un log
+      copy:
+        content: |
+          ==== Packages installés pour {{ firmware_type.stdout.strip() }} ====
+          {{ firmware_packages.results | to_nice_yaml }}
+          ==== Packages communs installés ====
+          {{ common_packages.results | to_nice_yaml }}
+        dest: /var/log/package_installation.log
+      tags:
+        - logging
+        - packages
 
     - name: ===== Bloc 3  Gestion des mots de passe =====
       debug:
@@ -148,29 +197,47 @@
         - fail2ban
         - security
 
-    - name: ===== Bloc 6  Configuration de la rotation des logs =====
+    - name: ===== Bloc 6  Configuration des logs =====
       debug:
-        msg: "Mise en place de la rotation des logs système."
+        msg: "Mise en place de la rotation des logs système et surveillance des fichiers critiques."
 
-    - name: Configurer la rotation des logs avec blockinfile
-      ansible.builtin.blockinfile:
-        path: /etc/logrotate.d/auth
+    - name: Configurer la rotation des logs critiques
+      blockinfile:
+        path: /etc/logrotate.d/critical_logs
         create: yes
         block: |
-          /var/log/auth.log {
+          /var/log/auth.log
+          /var/log/sudo.log
+          /var/log/sshd_critical.log
+          /var/log/system_errors.log {
               su root adm
-              rotate 7
+              rotate 14
               daily
               missingok
               compress
               delaycompress
               notifempty
-              create 640 syslog adm
+              create 640 root adm
           }
-        marker: "# {mark} ANSIBLE MANAGED BLOCK - LOGROTATE CONFIGURATION"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - CRITICAL LOG ROTATION"
       tags:
         - logs
         - maintenance
+
+    - name: Configurer rsyslog pour surveiller les fichiers critiques
+      blockinfile:
+        path: /etc/rsyslog.d/critical_logs.conf
+        block: |
+          # Surveillance des fichiers critiques
+          :programname, isequal, "sudo" /var/log/sudo.log
+          :programname, isequal, "sshd" /var/log/sshd_critical.log
+          *.err /var/log/system_errors.log
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - CRITICAL LOGGING"
+      notify:
+        - Restart rsyslog
+      tags:
+        - logs
+        - security
 
     - name: ===== Bloc 7  Durcissement des paramètres kernel =====
       debug:
@@ -186,6 +253,27 @@
         - { name: "net.ipv4.icmp_echo_ignore_all", value: "1" }
         - { name: "net.ipv4.tcp_syncookies", value: "1" }
         - { name: "net.ipv4.ip_forward", value: "0" }
+        - { name: "net.ipv4.conf.all.send_redirects", value: "0" }
+        - { name: "net.ipv4.conf.default.send_redirects", value: "0" }
+        - { name: "net.ipv4.icmp_echo_ignore_broadcasts", value: "1" }
+        - { name: "net.ipv4.conf.all.accept_source_route", value: "0" }
+      tags:
+        - kernel
+        - security
+
+    - name: Rendre les paramètres réseau persistants (ANSSI)
+      ansible.builtin.blockinfile:
+        path: /etc/sysctl.conf
+        block: |
+          # Sécurisation réseau ANSSI
+          net.ipv4.icmp_echo_ignore_all = 1
+          net.ipv4.tcp_syncookies = 1
+          net.ipv4.ip_forward = 0
+          net.ipv4.conf.all.send_redirects = 0
+          net.ipv4.conf.default.send_redirects = 0
+          net.ipv4.icmp_echo_ignore_broadcasts = 1
+          net.ipv4.conf.all.accept_source_route = 0
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - NETWORK SECURITY"
       tags:
         - kernel
         - security
@@ -207,31 +295,232 @@
         - pam
         - security
 
-    - name: ===== Bloc 9  Configuration d'AIDE =====
+        - name: ===== Bloc 9  Configuration d'AIDE =====
       debug:
         msg: "Configuration d'AIDE pour surveiller les fichiers critiques."
 
-    - name: Initialiser la base de données AIDE
+    - name: Initialiser la base de données AIDE si nécessaire
       command: aideinit
       args:
         creates: /var/lib/aide/aide.db.new
+      register: aide_init
+      changed_when: true
       tags:
         - aide
         - security
 
-    - name: ===== Bloc 10  Audit de sécurité avec Lynis =====
+    - name: Vérifier si AIDE est déjà configuré
+      stat:
+        path: /var/lib/aide/aide.db.gz
+      register: aide_config
+      tags:
+        - aide
+        - validation
+
+    - name: Exécuter un scan initial avec AIDE si la configuration est présente
+      shell: /usr/bin/aide --check > /var/log/aide_initial_check.log 2>&1
+      register: aide_scan
+      when: aide_config.stat.exists
+      changed_when: false
+      tags:
+        - aide
+        - audit
+
+    - name: Enregistrer l'exécution du scan initial dans le log global
+      lineinfile:
+        path: /var/log/audit_execution.log
+        create: yes
+        line: "[{{ ansible_date_time.date }} {{ ansible_date_time.time }}] Scan initial AIDE exécuté avec succès."
+      when: aide_scan.rc == 0
+      tags:
+        - aide
+        - logging
+
+    - name: Planifier un scan AIDE hebdomadaire
+      cron:
+        name: "Vérification hebdomadaire avec AIDE"
+        user: root
+        minute: "0"
+        hour: "3"
+        weekday: "0"
+        job: "/usr/bin/aide --check >> /var/log/aide_audit_history.log 2>&1 && echo '[`date`] Scan hebdomadaire AIDE exécuté avec succès.' >> /var/log/audit_execution.log"
+      tags:
+        - cron
+        - aide
+
+        - name: ===== Bloc 10  Audit de sécurité avec Lynis =====
       debug:
         msg: "Exécution d'un audit de sécurité avec Lynis."
 
-    - name: Exécuter un audit système avec Lynis
-      command: lynis audit system
+    - name: Vérifier si Lynis est installé
+      stat:
+        path: /usr/bin/lynis
+      register: lynis_installed
+      tags:
+        - lynis
+        - validation
+
+    - name: Installer Lynis si nécessaire
+      package:
+        name: lynis
+        state: present
+      when: not lynis_installed.stat.exists
+      tags:
+        - lynis
+        - critical
+
+    - name: Exécuter un audit système initial avec Lynis
+      shell: /usr/bin/lynis audit system > /var/log/lynis_initial_audit.log 2>&1
       register: lynis_output
+      changed_when: false
       ignore_errors: true
+      when: lynis_installed.stat.exists
       tags:
         - lynis
         - audit
 
-    - name: ===== Bloc 11  Sécurisation des services SSH =====
+    - name: Enregistrer l'exécution de l'audit initial dans le log global
+      lineinfile:
+        path: /var/log/audit_execution.log
+        create: yes
+        line: "[{{ ansible_date_time.date }} {{ ansible_date_time.time }}] Audit initial Lynis exécuté avec succès."
+      when: lynis_output.rc == 0
+      tags:
+        - lynis
+        - logging
+
+    - name: Planifier un audit Lynis quotidien
+      cron:
+        name: "Audit de sécurité avec Lynis"
+        user: root
+        minute: "0"
+        hour: "2"
+        job: "/usr/bin/lynis audit system --cronjob >> /var/log/lynis_audit_history.log 2>&1 && echo '[`date`] Audit quotidien Lynis exécuté avec succès.' >> /var/log/audit_execution.log"
+      tags:
+        - cron
+        - lynis
+
+    - name: ===== Bloc 11  Désactivation des services inutiles =====
+      debug:
+        msg: "Désactivation des services inutiles avec possibilité de réactivation par un administrateur."
+
+    - name: Désactiver les services inutiles
+      service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop:
+        - cups
+        - telnet
+        - vsftpd
+        - nfs-server
+        - rpcbind
+      tags:
+        - services
+        - security
+
+    - name: Documenter les services désactivés
+      lineinfile:
+        path: /var/log/disabled_services.log
+        create: yes
+        line: "{{ item }} désactivé le {{ ansible_date_time.date }} par Ansible"
+      loop:
+        - cups
+        - telnet
+        - vsftpd
+        - nfs-server
+        - rpcbind
+      tags:
+        - services
+        - documentation
+
+    - name: ===== Bloc 12  Sécurisation du bootloader (GRUB) =====
+      debug:
+        msg: "Configuration d'un mot de passe pour GRUB."
+
+    - name: Vérifier si un mot de passe GRUB existe déjà
+      stat:
+        path: /etc/grub.d/grub_password
+      register: grub_password_file
+      tags:
+        - grub
+        - security
+
+    - name: Générer un mot de passe chiffré pour GRUB si nécessaire
+      command: grub-mkpasswd-pbkdf2
+      register: grub_password
+      when: not grub_password_file.stat.exists
+      changed_when: true
+      tags:
+        - grub
+        - security
+
+    - name: Enregistrer le mot de passe GRUB
+      copy:
+        content: "{{ grub_password.stdout }}"
+        dest: /etc/grub.d/grub_password
+        owner: root
+        group: root
+        mode: "0600"
+      when: grub_password.changed
+      tags:
+        - grub
+        - security
+
+    - name: Ajouter le mot de passe GRUB dans la configuration
+      blockinfile:
+        path: /etc/grub.d/40_custom
+        block: |
+          set superusers="admin"
+          password_pbkdf2 admin {{ lookup('file', '/etc/grub.d/grub_password') }}
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - GRUB PASSWORD"
+      tags:
+        - grub
+        - security
+
+    - name: Mettre à jour la configuration GRUB
+      command: update-grub
+      tags:
+        - grub
+        - security
+
+    - name: Valider la configuration GRUB
+      shell: grub-mkconfig -o /boot/grub/grub.cfg
+      register: grub_validation
+      changed_when: false
+      failed_when: "'error' in grub_validation.stderr"
+      tags:
+        - grub
+        - validation
+
+    - name: ===== Bloc 13  Génération du rapport post-déploiement =====
+      debug:
+        msg: "Génération du rapport post-déploiement."
+
+    - name: Générer un rapport post-déploiement
+      shell: |
+        echo "==== Rapport post-déploiement ====" > /var/log/post_deployment_report.log
+        echo "== Audits ==" >> /var/log/post_deployment_report.log
+        tail -n 10 /var/log/audit_execution.log >> /var/log/post_deployment_report.log
+        echo "== Services ==" >> /var/log/post_deployment_report.log
+        systemctl list-units --type=service --state=running >> /var/log/post_deployment_report.log
+        echo "== Firewall ==" >> /var/log/post_deployment_report.log
+        ufw status verbose >> /var/log/post_deployment_report.log
+    tags:
+        - reporting
+        - validation
+
+    - name: Restreindre les permissions du rapport
+      file:
+        path: /var/log/post_deployment_report.log
+        owner: root
+        group: root
+        mode: '0600'
+      tags:
+        - reporting
+        - security
+
+    - name: ===== Bloc 14  Sécurisation des services SSH =====
       debug:
         msg: "Sécurisation de la configuration SSH."
 
@@ -259,7 +548,8 @@
         msg: "Le déploiement du playbook est terminé avec succès !"
 
   handlers:
-    - name: Restart Fail2Ban
+    # Handlers pour la sécurité
+    - name: Redémarrer Fail2Ban
       service:
         name: fail2ban
         state: restarted
@@ -273,4 +563,19 @@
         state: restarted
       tags:
         - ssh
+        - service-restart
+
+    - name: Redémarrer rsyslog
+      service:
+        name: rsyslog
+        state: restarted
+      tags:
+        - rsyslog
+        - service-restart
+
+    # Handler pour le pare-feu
+    - name: Redémarrer UFW
+      command: ufw reload
+      tags:
+        - firewall
         - service-restart
