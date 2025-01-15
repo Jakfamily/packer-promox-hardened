@@ -4,14 +4,11 @@
   become: yes
 
   tasks:
-    - name: ===== Début du playbook  Durcissement CIS =====
+    - name: ===== Début du playbook Durcissement CIS =====
       debug:
         msg: "Déploiement commencé : Durcissement CIS avec gestion des utilisateurs et services."
 
-    - name: ===== Bloc 1  Gestion des utilisateurs et sudo =====
-      debug:
-        msg: "Configuration des utilisateurs et du groupe sudo."
-
+    #"Configuration des utilisateurs et du groupe sudo."
     - name: Créer un utilisateur administrateur "debian"
       user:
         name: debian
@@ -58,35 +55,27 @@
         - users
         - critical
 
-    - name: ===== Bloc 2  Installation des packages =====
-      debug:
-        msg: "Installation des packages nécessaires."
+    #"Installation des packages nécessaires."
 
-    - name: Vérifier si le système utilise UEFI
+    - name: Mettre à jour les dépôts APT
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      tags:
+        - packages
+        - critical
+
+    - name: Détecter le type de firmware (UEFI/BIOS)
       shell: "[ -d /sys/firmware/efi ] && echo 'UEFI' || echo 'BIOS'"
       register: firmware_type
       changed_when: false
       tags:
         - packages
-        - validation
 
-    - name: Installer les packages requis pour le système détecté
-      package:
-        name: >
-          {% if firmware_type.stdout.strip() == 'UEFI' %}
-            grub-efi-amd64-bin
-          {% else %}
-            grub-pc-bin
-          {% endif %}
-        state: present
-      register: firmware_packages
-      tags:
-        - packages
-        - critical
-
-    - name: Installer les autres packages requis pour le durcissement et les utilitaires
+    - name: Installer tous les packages requis
       package:
         name:
+          - "{{ 'grub-efi-amd64-bin' if firmware_type.stdout == 'UEFI' else 'grub-pc-bin' }}"
           - grub-common
           - libpam-pwquality
           - fail2ban
@@ -102,26 +91,20 @@
           - lynis
           - aide
         state: present
-      register: common_packages
+      register: package_installation
       tags:
         - packages
         - critical
 
-    - name: Enregistrer les packages installés dans un log
-      copy:
-        content: |
-          ==== Packages installés pour {{ firmware_type.stdout.strip() }} ====
-          {{ firmware_packages.results | to_nice_yaml }}
-          ==== Packages communs installés ====
-          {{ common_packages.results | to_nice_yaml }}
-        dest: /var/log/package_installation.log
+    - name: Journaliser l'installation
+      lineinfile:
+        path: /var/log/package_installation.log
+        line: "Packages installés le {{ ansible_date_time.date }} pour système {{ firmware_type.stdout }}"
+        create: yes
       tags:
         - logging
-        - packages
 
-    - name: ===== Bloc 3  Gestion des mots de passe =====
-      debug:
-        msg: "Configuration des politiques et expirations des mots de passe."
+    #"Configuration des politiques et expirations des mots de passe."
 
     - name: Configurer la politique de mots de passe
       ansible.builtin.blockinfile:
@@ -148,9 +131,7 @@
         - passwords
         - security
 
-    - name: ===== Bloc 4  Configuration du pare-feu UFW =====
-      debug:
-        msg: "Activation et configuration du pare-feu UFW."
+    #"Activation et configuration du pare-feu UFW."
 
     - name: Activer UFW avec des règles par défaut
       ufw:
@@ -170,9 +151,7 @@
         - firewall
         - ssh
 
-    - name: ===== Bloc 5  Configuration de Fail2Ban =====
-      debug:
-        msg: "Configuration de Fail2Ban pour sécuriser SSH et les connexions."
+    #"Configuration de Fail2Ban pour sécuriser SSH et les connexions."
 
     - name: Configurer Fail2Ban via jail.local
       ansible.builtin.blockinfile:
@@ -197,9 +176,7 @@
         - fail2ban
         - security
 
-    - name: ===== Bloc 6  Configuration des logs =====
-      debug:
-        msg: "Mise en place de la rotation des logs système et surveillance des fichiers critiques."
+    #"Mise en place de la rotation des logs système et surveillance des fichiers critiques."
 
     - name: Configurer la rotation des logs critiques
       blockinfile:
@@ -239,9 +216,7 @@
         - logs
         - security
 
-    - name: ===== Bloc 7  Durcissement des paramètres kernel =====
-      debug:
-        msg: "Application des paramètres sysctl pour renforcer la sécurité kernel."
+    #"Application des paramètres sysctl pour renforcer la sécurité kernel."
 
     - name: Configurer les paramètres sysctl
       sysctl:
@@ -278,9 +253,7 @@
         - kernel
         - security
 
-    - name: ===== Bloc 8  Configuration du module PAM =====
-      debug:
-        msg: "Configuration de PAM pour limiter les tentatives de connexion."
+    #"Configuration de PAM pour limiter les tentatives de connexion."
 
     - name: Configurer pam_faillock pour limiter les tentatives de connexion
       ansible.builtin.blockinfile:
@@ -348,9 +321,7 @@
         - cron
         - aide
 
-        - name: ===== Bloc 10  Audit de sécurité avec Lynis =====
-      debug:
-        msg: "Exécution d'un audit de sécurité avec Lynis."
+    #"Exécution d'un audit de sécurité avec Lynis."
 
     - name: Vérifier si Lynis est installé
       stat:
@@ -400,9 +371,7 @@
         - cron
         - lynis
 
-    - name: ===== Bloc 11  Désactivation des services inutiles =====
-      debug:
-        msg: "Désactivation des services inutiles avec possibilité de réactivation par un administrateur."
+    #"Désactivation des services inutiles avec possibilité de réactivation par un administrateur."
 
     - name: Désactiver les services inutiles
       service:
@@ -434,68 +403,30 @@
         - services
         - documentation
 
-    - name: ===== Bloc 12  Sécurisation du bootloader (GRUB) =====
-      debug:
-        msg: "Configuration d'un mot de passe pour GRUB."
+    #"Configuration d'un mot de passe pour GRUB."
 
     - name: Vérifier si un mot de passe GRUB existe déjà
       stat:
-        path: /etc/grub.d/grub_password
+        path: /etc/grub.d/01_password
       register: grub_password_file
       tags:
         - grub
         - security
 
-    - name: Générer un mot de passe chiffré pour GRUB si nécessaire
-      command: grub-mkpasswd-pbkdf2
-      register: grub_password
-      when: not grub_password_file.stat.exists
-      changed_when: true
-      tags:
-        - grub
-        - security
-
-    - name: Enregistrer le mot de passe GRUB
+    - name: Créer le fichier de configuration GRUB
       copy:
-        content: "{{ grub_password.stdout }}"
-        dest: /etc/grub.d/grub_password
-        owner: root
-        group: root
-        mode: "0600"
-      when: grub_password.changed
-      tags:
-        - grub
-        - security
-
-    - name: Ajouter le mot de passe GRUB dans la configuration
-      blockinfile:
-        path: /etc/grub.d/40_custom
-        block: |
+        dest: /etc/grub.d/01_password
+        content: |
           set superusers="admin"
-          password_pbkdf2 admin {{ lookup('file', '/etc/grub.d/grub_password') }}
-        marker: "# {mark} ANSIBLE MANAGED BLOCK - GRUB PASSWORD"
+          password admin adminpass
+        mode: "0755"
+      when: not grub_password_file.stat.exists
+      notify: Update GRUB
       tags:
         - grub
         - security
 
-    - name: Mettre à jour la configuration GRUB
-      command: update-grub
-      tags:
-        - grub
-        - security
-
-    - name: Valider la configuration GRUB
-      shell: grub-mkconfig -o /boot/grub/grub.cfg
-      register: grub_validation
-      changed_when: false
-      failed_when: "'error' in grub_validation.stderr"
-      tags:
-        - grub
-        - validation
-
-    - name: ===== Bloc 13  Génération du rapport post-déploiement =====
-      debug:
-        msg: "Génération du rapport post-déploiement."
+    #"Génération du rapport post-déploiement."
 
     - name: Générer un rapport post-déploiement
       shell: |
@@ -506,7 +437,7 @@
         systemctl list-units --type=service --state=running >> /var/log/post_deployment_report.log
         echo "== Firewall ==" >> /var/log/post_deployment_report.log
         ufw status verbose >> /var/log/post_deployment_report.log
-    tags:
+      tags:
         - reporting
         - validation
 
@@ -515,14 +446,12 @@
         path: /var/log/post_deployment_report.log
         owner: root
         group: root
-        mode: '0600'
+        mode: "0600"
       tags:
         - reporting
         - security
 
-    - name: ===== Bloc 14  Sécurisation des services SSH =====
-      debug:
-        msg: "Sécurisation de la configuration SSH."
+    #"Sécurisation de la configuration SSH."
 
     - name: Configurer SSH de manière sécurisée
       ansible.builtin.blockinfile:
@@ -578,4 +507,12 @@
       command: ufw reload
       tags:
         - firewall
+        - service-restart
+
+    # Handler pour la mise à jour de GRUB
+    - name: Update GRUB
+      command: update-grub
+      ignore_errors: yes
+      tags:
+        - grub
         - service-restart
