@@ -1,14 +1,14 @@
+---
 - name: Durcissement CIS avec gestion des utilisateurs et services
   hosts: node1
   become: yes
+
   tasks:
-### Marker: Début du playbook ###
-    - name: ===== Début du playbook : Durcissement CIS =====
+    - name: ===== Début du playbook  Durcissement CIS =====
       debug:
         msg: "Déploiement commencé : Durcissement CIS avec gestion des utilisateurs et services."
 
-### Bloc 1 : Création de l'utilisateur administrateur et configuration sudo ###
-    - name: ===== Bloc 1 : Gestion des utilisateurs et sudo =====
+    - name: ===== Bloc 1  Gestion des utilisateurs et sudo =====
       debug:
         msg: "Configuration des utilisateurs et du groupe sudo."
 
@@ -45,8 +45,7 @@
       tags:
         - sudo
 
-### Bloc 2 : Installation des packages nécessaires ###
-    - name: ===== Bloc 2 : Installation des packages =====
+    - name: ===== Bloc 2  Installation des packages =====
       debug:
         msg: "Installation des packages nécessaires."
 
@@ -71,8 +70,7 @@
         - packages
         - critical
 
-### Bloc 3 : Gestion des mots de passe ###
-    - name: ===== Bloc 3 : Gestion des mots de passe =====
+    - name: ===== Bloc 3  Gestion des mots de passe =====
       debug:
         msg: "Configuration des politiques et expirations des mots de passe."
 
@@ -101,8 +99,7 @@
         - passwords
         - security
 
-### Bloc 4 : Activation et configuration de UFW (pare-feu) ###
-    - name: ===== Bloc 4 : Configuration du pare-feu UFW =====
+    - name: ===== Bloc 4  Configuration du pare-feu UFW =====
       debug:
         msg: "Activation et configuration du pare-feu UFW."
 
@@ -124,14 +121,14 @@
         - firewall
         - ssh
 
-### Bloc 5 : Configuration de Fail2Ban ###
-    - name: ===== Bloc 5 : Configuration de Fail2Ban =====
+    - name: ===== Bloc 5  Configuration de Fail2Ban =====
       debug:
         msg: "Configuration de Fail2Ban pour sécuriser SSH et les connexions."
 
     - name: Configurer Fail2Ban via jail.local
       ansible.builtin.blockinfile:
         path: /etc/fail2ban/jail.local
+        create: yes
         block: |
           [DEFAULT]
           bantime = 3600
@@ -151,16 +148,17 @@
         - fail2ban
         - security
 
-### Bloc 6 : Rotation des logs ###
-    - name: ===== Bloc 6 : Configuration de la rotation des logs =====
+    - name: ===== Bloc 6  Configuration de la rotation des logs =====
       debug:
         msg: "Mise en place de la rotation des logs système."
 
     - name: Configurer la rotation des logs avec blockinfile
       ansible.builtin.blockinfile:
         path: /etc/logrotate.d/auth
+        create: yes
         block: |
           /var/log/auth.log {
+              su root adm
               rotate 7
               daily
               missingok
@@ -174,8 +172,7 @@
         - logs
         - maintenance
 
-### Bloc 7 : Durcissement des paramètres kernel ###
-    - name: ===== Bloc 7 : Durcissement des paramètres kernel =====
+    - name: ===== Bloc 7  Durcissement des paramètres kernel =====
       debug:
         msg: "Application des paramètres sysctl pour renforcer la sécurité kernel."
 
@@ -193,14 +190,14 @@
         - kernel
         - security
 
-    ### Bloc 8 : Configuration du module PAM ###
-    - name: ===== Bloc 8 : Configuration du module PAM =====
+    - name: ===== Bloc 8  Configuration du module PAM =====
       debug:
         msg: "Configuration de PAM pour limiter les tentatives de connexion."
 
     - name: Configurer pam_faillock pour limiter les tentatives de connexion
       ansible.builtin.blockinfile:
         path: /etc/security/faillock.conf
+        create: yes
         block: |
           deny = 5
           unlock_time = 900
@@ -210,8 +207,7 @@
         - pam
         - security
 
-### Bloc 9 : Configuration du monitoring avec AIDE ###
-    - name: ===== Bloc 9 : Configuration d'AIDE =====
+    - name: ===== Bloc 9  Configuration d'AIDE =====
       debug:
         msg: "Configuration d'AIDE pour surveiller les fichiers critiques."
 
@@ -223,8 +219,7 @@
         - aide
         - security
 
-### Bloc 10 : Audit de sécurité avec Lynis ###
-    - name: ===== Bloc 10 : Audit de sécurité avec Lynis =====
+    - name: ===== Bloc 10  Audit de sécurité avec Lynis =====
       debug:
         msg: "Exécution d'un audit de sécurité avec Lynis."
 
@@ -236,8 +231,7 @@
         - lynis
         - audit
 
-### Bloc 11 : Sécurisation des services SSH ###
-    - name: ===== Bloc 11 : Sécurisation des services SSH =====
+    - name: ===== Bloc 11  Sécurisation des services SSH =====
       debug:
         msg: "Sécurisation de la configuration SSH."
 
@@ -254,33 +248,29 @@
           X11Forwarding no
           ClientAliveCountMax 3
         marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH SECURITY"
+      notify:
+        - Redémarrer le service SSH
       tags:
         - ssh
         - security
 
-### Bloc 12 : Redémarrage des services ###
-    - name: ===== Bloc 12 : Redémarrage des services pour appliquer les changements =====
-      debug:
-        msg: "Redémarrage des services Fail2Ban et SSH pour appliquer les modifications."
-
-    handlers:
-      - name: Restart Fail2Ban
-        service:
-          name: fail2ban
-          state: restarted
-        tags:
-          - fail2ban
-          - service-restart
-
-      - name: Redémarrer le service SSH
-        service:
-          name: sshd
-          state: restarted
-        tags:
-          - ssh
-          - service-restart
-
-### Marker: Fin du playbook ###
     - name: ===== Fin du playbook =====
       debug:
         msg: "Le déploiement du playbook est terminé avec succès !"
+
+  handlers:
+    - name: Restart Fail2Ban
+      service:
+        name: fail2ban
+        state: restarted
+      tags:
+        - fail2ban
+        - service-restart
+
+    - name: Redémarrer le service SSH
+      service:
+        name: sshd
+        state: restarted
+      tags:
+        - ssh
+        - service-restart
