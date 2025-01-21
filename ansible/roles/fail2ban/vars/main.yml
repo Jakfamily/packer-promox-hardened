@@ -1,0 +1,7 @@
+---
+# Configuration de Fail2Ban
+fail2ban_config:
+  bantime: 3600         # Durée du ban en secondes (1 heure)
+  findtime: 600         # Fenêtre de temps pour détecter les échecs (10 minutes)
+  maxretry: 5           # Nombre maximum de tentatives avant ban
+  ignoreip: 127.0.0.1/8 # IP(s) à ignorer (loopback)

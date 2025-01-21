@@ -1,0 +1,36 @@
+---
+# Créer le répertoire de stockage des logs post-déploiement
+- name: Créer le répertoire de logs post-déploiement
+  file:
+    path: "{{ post_deployment_log_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags:
+    - reporting
+    - security
+
+# Générer le rapport post-déploiement
+- name: Générer un rapport post-déploiement
+  shell: |
+    echo "==== Rapport post-déploiement ====" > "{{ post_deployment_log_dir }}/{{ post_deployment_report_file }}"
+
+    {% for section in report_sections %}
+    echo "== {{ section }} ==" >> "{{ post_deployment_log_dir }}/{{ post_deployment_report_file }}"
+    {% if section == 'Audits' %}
+    tail -n 10 {{ audit_log_file }} >> "{{ post_deployment_log_dir }}/{{ post_deployment_report_file }}"
+    {% elif section == 'Services' %}
+    {{ services_check_command }} >> "{{ post_deployment_log_dir }}/{{ post_deployment_report_file }}"
+    {% elif section == 'Firewall' %}
+    {{ firewall_check_command }} >> "{{ post_deployment_log_dir }}/{{ post_deployment_report_file }}"
+    {% endif %}
+    {% endfor %}
+  tags:
+    - reporting
+    - validation
+
+# Restreindre les permissions du rapport
+- name: Restreindre les permissions du rapport
+  file:
+    path: "{{ post_deployment_log_dir }}/{{ post_deployment_report_file }}"

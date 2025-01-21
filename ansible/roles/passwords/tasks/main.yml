@@ -1,0 +1,22 @@
+---
+# Configurer la politique de mots de passe avec libpam-pwquality (CIS 6.3.1, ANSSI R36, NIS 2)
+- name: Configurer la politique de mots de passe
+  ansible.builtin.blockinfile:
+    path: /etc/security/pwquality.conf
+    block: |
+      # Politique renforcée des mots de passe
+      minlen = {{ password_policy.minlen }}
+      minclass = {{ password_policy.minclass }}
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - PASSWORD POLICY"
+  tags:
+    - passwords
+    - security
+
+# Vérifier la politique de mots de passe (CIS 6.3.2, ANSSI R37, NIS 2)
+- name: Vérifier la politique de mots de passe
+  ansible.builtin.command:
+    cmd: grep -E "minlen|minclass" /etc/security/pwquality.conf
+  register: pwquality_check
+  changed_when: false
+  tags:
+    - validation

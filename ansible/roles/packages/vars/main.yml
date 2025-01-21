@@ -1,0 +1,28 @@
+---
+required_packages:
+  base:
+    # Liste des paquets de base à installer
+    - grub-common
+    - libpam-pwquality
+    - fail2ban
+    - ufw
+    - vim
+    - curl
+    - wget
+    - htop
+    - net-tools
+    - logrotate
+    - libpam-modules
+    - libpam-modules-bin
+    - lynis
+    - aide
+    - rsyslog
+    - clamav
+    - clamav-daemon
+
+  firmware:
+    # Paquets spécifiques en fonction du type de firmware (UEFI ou BIOS)
+    uefi:
+      - grub-efi-amd64-bin
+    bios:
+      - grub-pc-bin

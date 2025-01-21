@@ -1,0 +1,19 @@
+---
+# Paramètres de la base de données AIDE
+aide_db_path: /var/lib/aide/aide.db
+aide_db_new_path: /var/lib/aide/aide.db.new
+
+# Logs de l'exécution du scan AIDE
+aide_log_file: /var/log/aide_initial_check.log
+aide_history_log: /var/log/aide_audit_history.log
+
+# Commande de scan AIDE
+aide_scan_command: "/usr/bin/aide --check"
+
+# Paramètres de la planification du scan avec cron
+aide_cron_minute: "0"
+aide_cron_hour: "3"
+aide_cron_weekday: "0"  # Dimanche à 3h du matin
+
+# Variables de fréquence de scan
+aide_scan_frequency: "weekly"  # "daily", "weekly", "monthly"

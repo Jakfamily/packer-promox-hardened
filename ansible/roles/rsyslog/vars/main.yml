@@ -1,0 +1,21 @@
+---
+# Configuration des paramètres de rotation des logs
+rsyslog_config:
+  rotation_days: 14
+  log_files:
+    - /var/log/auth.log
+    - /var/log/sudo.log
+    - /var/log/sshd_critical.log
+    - /var/log/system_errors.log
+    - "/var/log/clamav/clamav.log"
+  compression: true
+  delay_compression: true
+  critical_logs:
+    - name: "sudo"
+      path: "/var/log/sudo.log"
+    - name: "sshd"
+      path: "/var/log/sshd_critical.log"
+    - name: "system_errors"
+      path: "/var/log/system_errors.log"
+    - name: "clamav"
+      path: "/var/log/clamav/clamav.log"

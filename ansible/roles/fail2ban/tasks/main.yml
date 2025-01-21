@@ -1,0 +1,41 @@
+---
+# Installer Fail2Ban (CIS 5.4.1, ANSSI R124)
+- name: Installer Fail2Ban
+  ansible.builtin.package:
+    name: fail2ban
+    state: present
+  tags:
+    - fail2ban
+    - critical
+
+# Configurer Fail2Ban via jail.local (CIS 5.4.2, ANSSI R125)
+- name: Configurer Fail2Ban via jail.local
+  ansible.builtin.blockinfile:
+    path: /etc/fail2ban/jail.local
+    create: yes
+    block: |
+      [DEFAULT]
+      bantime = {{ fail2ban_config.bantime }}
+      findtime = {{ fail2ban_config.findtime }}
+      maxretry = {{ fail2ban_config.maxretry }}
+      ignoreip = {{ fail2ban_config.ignoreip }}
+
+      [sshd]
+      enabled = true
+      port = ssh
+      logpath = /var/log/auth.log
+      action = %(action_mwl)s
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - FAIL2BAN CONFIGURATION"
+  notify: Redémarrer Fail2Ban
+  tags:
+    - fail2ban
+    - security
+
+# Vérifier le statut de Fail2Ban
+- name: Vérifier le statut de Fail2Ban
+  ansible.builtin.command:
+    cmd: fail2ban-client status
+  register: fail2ban_status
+  changed_when: false
+  tags:
+    - validation

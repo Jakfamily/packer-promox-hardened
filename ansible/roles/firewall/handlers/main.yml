@@ -1,0 +1,6 @@
+    # Handler pour le pare-feu
+    - name: Redémarrer UFW
+      command: ufw reload
+      tags:
+        - firewall
+        - service-restart

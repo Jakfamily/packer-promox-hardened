@@ -1,0 +1,14 @@
+---
+- name: Créer le fichier de configuration GRUB avec un mot de passe si nécessaire
+  copy:
+    dest: "/etc/grub.d/01_password"
+    content: |
+      set superusers="admin"
+      password admin {{ vault_grub_password }}  # Utilisation du mot de passe chiffré
+    mode: "0755"
+  when: not grub_password_file.stat.exists
+  changed_when: true  # Indique que cette tâche a modifié l'état, ce qui déclenche le handler
+  notify: Update GRUB
+  tags:
+    - grub
+    - security

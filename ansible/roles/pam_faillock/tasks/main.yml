@@ -1,0 +1,14 @@
+---
+# tasks file for pam_faillock_config
+- name: Configurer pam_faillock pour limiter les tentatives de connexion
+  ansible.builtin.blockinfile:
+    path: /etc/security/faillock.conf
+    create: yes
+    block: |
+      deny = "{{ pam_faillock_deny }}"
+      unlock_time = "{{ pam_faillock_unlock_time }}"
+      fail_interval = "{{ pam_faillock_fail_interval }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - PAM FAILLOCK CONFIG"
+  tags:
+    - pam
+    - security

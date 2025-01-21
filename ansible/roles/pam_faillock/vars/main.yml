@@ -1,0 +1,4 @@
+---
+pam_faillock_deny: 5 # Nombre de tentatives avant de bloquer l'utilisateur
+pam_faillock_unlock_time: 900 # Durée de blocage de l'utilisateur en secondes soit 15 minutes
+pam_faillock_fail_interval: 300 # Durée entre chaque tentative de connexion en secondes soit 5 minutes

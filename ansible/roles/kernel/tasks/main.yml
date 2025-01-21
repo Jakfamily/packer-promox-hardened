@@ -1,0 +1,24 @@
+---
+# Configurer et rendre les paramètres sysctl persistants (CIS 3.1, ANSSI R17)
+- name: Configurer et rendre les paramètres sysctl persistants
+  ansible.builtin.blockinfile:
+    path: /etc/sysctl.d/99-hardening.conf
+    block: |
+      {% for param in sysctl_params %}
+      {{ param.name }} = {{ param.value }}
+      {% endfor %}
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - SYSCTL CONFIGURATION"
+  tags:
+    - kernel
+    - security
+
+# Appliquer immédiatement les paramètres sysctl définis
+- name: Appliquer les paramètres sysctl définis
+  ansible.builtin.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+  loop: "{{ sysctl_params }}"
+  tags:
+    - kernel
+    - security

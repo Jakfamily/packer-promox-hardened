@@ -1,0 +1,9 @@
+---
+admin_user:
+  name: debian
+  shell: /bin/bash
+  groups: sudo sshusers
+
+sudo_config:
+  authenticate: true
+  requiretty: true

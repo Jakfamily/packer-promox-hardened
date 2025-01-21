@@ -1,0 +1,8 @@
+---
+# Handler pour redémarrer Fail2Ban
+  - name: Redémarrer Fail2Ban
+    ansible.builtin.service:
+      name: fail2ban
+      state: restarted
+    tags:
+      - fail2ban

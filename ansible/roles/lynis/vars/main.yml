@@ -1,0 +1,17 @@
+---
+# Chemin vers l'exécutable Lynis
+lynis_path: /usr/bin/lynis
+
+# Commande d'audit Lynis
+lynis_command: "/usr/bin/lynis audit system"
+
+# Fichiers de log pour l'audit Lynis
+lynis_log_file: /var/log/lynis_initial_audit.log
+lynis_history_log: /var/log/lynis_audit_history.log
+
+# Paramètres de la planification du scan avec cron
+lynis_cron_minute: "0"
+lynis_cron_hour: "2"
+
+# Fréquence de l'audit Lynis
+lynis_scan_frequency: "daily"  # "daily", "weekly", "monthly"

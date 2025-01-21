@@ -1,0 +1,4 @@
+---
+password_policy:
+  minlen: 16          # Longueur minimale des mots de passe
+  minclass: 4         # Nombre minimum de classes de caractères (majuscules, chiffres, caractères spéciaux, minuscules)

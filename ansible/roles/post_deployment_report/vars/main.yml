@@ -1,0 +1,23 @@
+---
+# Variables pour la configuration du rapport post-déploiement
+
+# Répertoire où les logs seront stockés
+post_deployment_log_dir: "/var/log/post_deployment"
+
+# Nom du fichier de rapport
+post_deployment_report_file: "post_deployment_report.log"
+
+# Fichier d'audit à inclure dans le rapport
+audit_log_file: "/var/log/audit_execution.log"
+
+# Services à inclure dans le rapport (exemple ici avec une liste)
+services_check_command: "systemctl list-units --type=service --state=running"
+
+# Commande pour vérifier l'état du pare-feu
+firewall_check_command: "ufw status verbose"
+
+# Liste des sections à inclure dans le rapport
+report_sections:
+  - "Audits"
+  - "Services"
+  - "Firewall"

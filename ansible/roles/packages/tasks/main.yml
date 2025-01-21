@@ -1,0 +1,36 @@
+---
+# Mise à jour des dépôts APT (CIS 1.2.3, ANSSI R62)
+- name: Mettre à jour les dépôts APT
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  tags:
+    - packages
+    - critical
+
+# Détecter le type de firmware (UEFI/BIOS) avec Ansible facts (Les Ansible facts sont des données collectées automatiquement par Ansible sur les hôtes cibles)  (CIS 1.1.1, ANSSI R54)
+- name: Détecter le type de firmware (UEFI/BIOS)
+  ansible.builtin.set_fact:
+    firmware_type: "{{ 'UEFI' if ansible_facts.firmware.vendor is defined else 'BIOS' }}"
+  tags:
+    - packages
+
+# Installer tous les packages requis (CIS 1.2.3, ANSSI R62)
+- name: Installer tous les packages nécessaires
+  ansible.builtin.package:
+    name: >
+      {{ required_packages.base + [required_packages.firmware[firmware_type | lower]] }}
+    state: present
+  register: package_installation
+  tags:
+    - packages
+    - critical
+
+# Journaliser l'installation des packages (CIS 1.7, ANSSI R62)
+- name: Journaliser l'installation
+  ansible.builtin.lineinfile:
+    path: /var/log/package_installation.log
+    line: "Packages installés le {{ ansible_date_time.date }} pour système {{ firmware_type }}"
+    create: yes
+  tags:
+    - logging

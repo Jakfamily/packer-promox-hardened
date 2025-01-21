@@ -1,0 +1,40 @@
+---
+# Créer un groupe pour les utilisateurs autorisés à se connecter via SSH
+- name: Créer le groupe sshusers
+  ansible.builtin.group:
+    name: "{{ ssh_allowed_group }}"
+    state: present
+  tags:
+    - ssh
+    - security
+
+# Ajouter les utilisateurs au groupe sshusers
+- name: Ajouter les utilisateurs au groupe sshusers
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: "{{ ssh_allowed_group }}"
+    append: yes
+  loop: "{{ ssh_allowed_users }}"
+  tags:
+    - ssh
+    - security
+
+# Configurer SSH de manière sécurisée en utilisant les variables définies
+- name: Configurer SSH de manière sécurisée
+  ansible.builtin.blockinfile:
+    path: /etc/ssh/sshd_config
+    block: |
+      # Sécurisation SSH
+      PermitRootLogin {{ ssh_config.permit_root_login }}
+      Protocol {{ ssh_config.protocol }}
+      AllowGroups {{ ssh_config.allow_groups }}
+      AllowUsers {{ ssh_allowed_users | join(' ') }}
+      ClientAliveInterval {{ ssh_config.client_alive_interval }}
+      GSSAPIAuthentication {{ ssh_config.gssapi_authentication }}
+      X11Forwarding {{ ssh_config.x11_forwarding }}
+      ClientAliveCountMax {{ ssh_config.client_alive_count_max }}
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH SECURITY"
+  notify: Restart SSH service
+  tags:
+    - ssh
+    - security

@@ -1,0 +1,7 @@
+---
+- name: Update GRUB
+  command: update-grub
+  when: grub_update_needed  # N'exécute le handler que si grub_update_needed est vrai
+  tags:
+    - grub
+    - service-restart

@@ -1,0 +1,35 @@
+# Activer et démarrer le service ClamAV
+- name: Activer et démarrer le service ClamAV
+  ansible.builtin.systemd:
+    name: "{{ clamav_service_name }}"
+    state: "{{ clamav_service_state }}"
+    enabled: "{{ clamav_service_enabled }}"
+  tags:
+    - clamav
+    - service
+
+# Planifier la mise à jour quotidienne de la base de données ClamAV
+- name: Planifier la mise à jour quotidienne de la base de données ClamAV
+  ansible.builtin.cron:
+    name: "{{ clamav_update_cron_name }}"
+    minute: "{{ clamav_update_cron_minute }}"
+    hour: "{{ clamav_update_cron_hour }}"
+    job: "{{ clamav_update_cron_job }}"
+    state: present
+    user: "{{ clamav_update_cron_user }}"
+  tags:
+    - clamav
+    - cron
+
+# Planifier un scan quotidien avec ClamAV
+- name: Planifier un scan quotidien avec ClamAV
+  ansible.builtin.cron:
+    name: "{{ clamav_scan_cron_name }}"
+    minute: "{{ clamav_scan_cron_minute }}"
+    hour: "{{ clamav_scan_cron_hour }}"
+    job: "{{ clamav_scan_cron_job }}"
+    state: present
+    user: "{{ clamav_scan_cron_user }}"
+  tags:
+    - clamav
+    - cron

@@ -1,0 +1,39 @@
+---
+# Configurer la rotation des logs critiques (CIS 4.3, ANSSI R92)
+- name: Configurer la rotation des logs critiques
+  ansible.builtin.blockinfile:
+    path: /etc/logrotate.d/critical_logs
+    create: yes
+    block: |
+      {% for log in rsyslog_config.log_files %}
+      {{ log }}
+      {% endfor %} {
+          su root adm
+          rotate {{ rsyslog_config.rotation_days }}
+          daily
+          missingok
+          compress
+          {% if rsyslog_config.compression %}compress{% endif %}
+          {% if rsyslog_config.delay_compression %}delaycompress{% endif %}
+          create 640 root adm
+      }
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - CRITICAL LOG ROTATION"
+  tags:
+    - logs
+    - maintenance
+
+# Configurer rsyslog pour surveiller les fichiers critiques (CIS 4.1.1, ANSSI R91)
+- name: Configurer rsyslog pour surveiller les fichiers critiques
+  ansible.builtin.blockinfile:
+    path: /etc/rsyslog.d/critical_logs.conf
+    create: yes
+    block: |
+      {% for log in rsyslog_config.critical_logs %}
+      :programname, isequal, "{{ log.name }}" {{ log.path }}
+      {% endfor %}
+      *.err /var/log/system_errors.log
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - CRITICAL LOGGING"
+  notify: Redémarrer rsyslog
+  tags:
+    - logs
+    - security

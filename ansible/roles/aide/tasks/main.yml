@@ -1,0 +1,58 @@
+---
+- name: Initialiser la base de données AIDE si nécessaire
+  command: aide --init
+  args:
+    creates: "{{ aide_db_new_path }}"
+  register: aide_init
+  changed_when: true
+  ignore_errors: true
+  tags:
+    - aide
+    - security
+
+- name: Copier la nouvelle base de données AIDE si elle existe
+  command: cp "{{ aide_db_new_path }}" "{{ aide_db_path }}"
+  when: aide_init is changed
+  tags:
+    - aide
+    - security
+
+- name: Vérifier si AIDE est déjà configuré
+  stat:
+    path: "{{ aide_db_path }}"
+  register: aide_config
+  tags:
+    - aide
+    - validation
+
+- name: Exécuter un scan initial avec AIDE si la configuration est présente
+  shell: "{{ aide_scan_command }} > {{ aide_log_file }} 2>&1"
+  register: aide_scan
+  when: aide_config.stat.exists
+  failed_when: false
+  changed_when: false
+  tags:
+    - aide
+    - audit
+
+- name: Enregistrer l'exécution du scan initial dans le log global
+  lineinfile:
+    path: /var/log/audit_execution.log
+    create: yes
+    line: "[{{ ansible_date_time.date }} {{ ansible_date_time.time }}] Scan initial AIDE exécuté avec succès."
+  when: aide_scan is defined and aide_scan.rc == 0
+  tags:
+    - aide
+    - logging
+
+- name: Planifier un scan AIDE hebdomadaire
+  cron:
+    name: "Scan AIDE hebdomadaire"
+    user: root
+    minute: "{{ aide_cron_minute }}"
+    hour: "{{ aide_cron_hour }}"
+    weekday: "{{ aide_cron_weekday }}"
+    job: "{{ aide_scan_command }} >> {{ aide_history_log }} 2>&1 && echo '[`date`] Scan hebdomadaire AIDE exécuté avec succès.' >> /var/log/audit_execution.log"
+  tags:
+    - cron
+    - aide

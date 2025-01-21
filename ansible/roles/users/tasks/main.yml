@@ -1,0 +1,78 @@
+---
+# Créer un utilisateur administrateur (CIS 6.2.1, ANSSI R20)
+- name: Créer un utilisateur administrateur
+  ansible.builtin.user:
+    name: "{{ admin_user.name }}"
+    password: "{{ admin_user.password }}"
+    shell: "{{ admin_user.shell }}"
+    groups: "{{ admin_user.groups }}"
+    append: yes
+    state: present
+  tags:
+    - users
+    - critical
+
+# Créer un groupe pour les utilisateurs autorisés à se connecter via SSH (CIS 5.2.10, ANSSI R23)
+- name: Créer le groupe sshusers
+  ansible.builtin.group:
+    name: sshusers
+    state: present
+  tags:
+    - users
+    - ssh
+
+# Configurer sudo pour demander un mot de passe (CIS 5.1.5, ANSSI R12)
+- name: Configurer sudo pour demander un mot de passe
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    regexp: '^Defaults\s+.*!authenticate'
+    line: "Defaults    {{ 'authenticate' if sudo_config.authenticate else '!authenticate' }}"
+    state: present
+    validate: "/usr/sbin/visudo -cf %s"
+  tags:
+    - sudo
+    - critical
+
+# Renforcer la configuration sudo (requiretty) (CIS 5.1.5, ANSSI R12)
+- name: Renforcer la configuration sudo (requiretty)
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    regexp: '^Defaults\s+.*requiretty'
+    line: "Defaults    {{ 'requiretty' if sudo_config.requiretty else '!requiretty' }}"
+    state: present
+    validate: "/usr/sbin/visudo -cf %s"
+  tags:
+    - sudo
+
+# Configurer sudo pour ignorer `.` dans $PATH (CIS 5.1.8, ANSSI R13)
+- name: Configurer sudo pour ignorer `.` dans $PATH
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    line: "Defaults    secure_path=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\""
+    state: present
+    validate: "/usr/sbin/visudo -cf %s"
+  tags:
+    - sudo
+
+# Configurer les comptes système avec /usr/sbin/nologin (CIS 6.2.3, ANSSI R20)
+- name: Configurer les comptes système avec /usr/sbin/nologin
+  ansible.builtin.user:
+    name: "{{ item }}"
+    shell: /usr/sbin/nologin
+  loop: >
+    {{ lookup('ansible.builtin.passwd', wantlist=True)
+      | json_query('[?uid < `1000` & uid != `0`].name') }}
+  tags:
+    - users
+    - critical
+
+# Configurer un répertoire temporaire par utilisateur (CIS 1.1.1, ANSSI R15)
+- name: Activer un répertoire temporaire par utilisateur
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/system.conf
+    regexp: '^#?PrivateTmp='
+    line: "PrivateTmp=true"
+    state: present
+  tags:
+    - security
+    - users
