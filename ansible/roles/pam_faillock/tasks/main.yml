@@ -1,14 +1,51 @@
 ---
-# tasks file for pam_faillock_config
-- name: Configurer pam_faillock pour limiter les tentatives de connexion
-  ansible.builtin.blockinfile:
-    path: /etc/security/faillock.conf
-    create: yes
-    block: |
-      deny = "{{ pam_faillock_deny }}"
-      unlock_time = "{{ pam_faillock_unlock_time }}"
-      fail_interval = "{{ pam_faillock_fail_interval }}"
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - PAM FAILLOCK CONFIG"
+# # Rôle : pam_faillock
+
+# ## Description
+# Ce rôle configure PAM Faillock pour limiter les tentatives de connexion échouées, afin de protéger le système contre les attaques par force brute.
+
+# ## Références aux benchmarks de sécurité :
+# 1. **CIS (Center for Internet Security)**
+#    - **Recommandation 5.3.2** : Configurer PAM Faillock pour limiter les tentatives de connexion.
+#    - [Lien direct vers CIS Benchmarks](https://downloads.cisecurity.org/#/) *(Connexion requise)*
+
+# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)**
+#    - **Recommandation R26** : Utiliser PAM pour protéger les sessions utilisateur contre les accès non autorisés.
+#    - [Lien direct vers ANSSI R26](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf) *(Page 37)*
+
+# ## Fonctionnalités :
+# - Configuration de `/etc/security/faillock.conf` pour limiter les tentatives de connexion.
+# - Paramètres configurables pour le nombre de tentatives, la durée de blocage, et l'intervalle entre chaque tentative.
+
+# ## Variables configurables :
+# - `pam_faillock_deny` : Nombre de tentatives avant de bloquer l'utilisateur.
+# - `pam_faillock_unlock_time` : Durée de blocage de l'utilisateur en secondes.
+# - `pam_faillock_fail_interval` : Intervalle entre chaque tentative en secondes.
+
+# ## Notes :
+# Ce rôle est essentiel pour durcir les paramètres de sécurité liés à la gestion des utilisateurs et empêcher les attaques par force brute.
+- name: Installer les packages nécessaires pour PAM Faillock
+  ansible.builtin.package:
+    name:
+      - libpam-modules
+      - libpam-modules-bin
+    state: present
+  tags:
+    - pam
+    - installation
+
+# Configurer PAM Faillock pour limiter les tentatives de connexion
+- name: Configurer PAM Faillock
+  ansible.builtin.copy:
+    dest: /etc/security/faillock.conf
+    content: |
+      # {{ ansible_managed }}
+      deny = {{ pam_faillock_deny }}
+      unlock_time = {{ pam_faillock_unlock_time }}
+      fail_interval = {{ pam_faillock_fail_interval }}
+    mode: "0644"
+    owner: root
+    group: root
   tags:
     - pam
     - security

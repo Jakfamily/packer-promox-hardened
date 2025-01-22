@@ -1,7 +1,4 @@
 ---
-# Configuration de Fail2Ban
+# Exemple de surcharge de la durée du ban pour un environnement spécifique
 fail2ban_config:
-  bantime: 3600         # Durée du ban en secondes (1 heure)
-  findtime: 600         # Fenêtre de temps pour détecter les échecs (10 minutes)
-  maxretry: 5           # Nombre maximum de tentatives avant ban
-  ignoreip: 127.0.0.1/8 # IP(s) à ignorer (loopback)
+  bantime: 7200  # Augmenter le temps de ban à 2 heures

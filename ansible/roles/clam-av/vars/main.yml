@@ -1,24 +1,3 @@
 ---
-# Configuration des paramètres de ClamAV
-
-# Service ClamAV
-clamav_service_name: clamav-daemon
-clamav_service_state: started
-clamav_service_enabled: yes
-
-# Mise à jour de la base de données ClamAV (Cron)
-clamav_update_cron_name: "Mise à jour quotidienne de la base de données ClamAV"
-clamav_update_cron_minute: "0"
-clamav_update_cron_hour: "3"
-clamav_update_cron_job: "/usr/bin/freshclam"
-clamav_update_cron_user: root
-
-# Scan quotidien ClamAV (Cron)
-clamav_scan_cron_name: "Scan quotidien ClamAV"
-clamav_scan_cron_minute: "0"
-clamav_scan_cron_hour: "4"
-clamav_scan_cron_job: "/usr/bin/clamscan -r / --log=/var/log/clamav/clamav_scan.log"
-clamav_scan_cron_user: root
-
-# Chemin du fichier de log de ClamAV
-clamav_log_path: /var/log/clamav/clamav_scan.log
+# Exemple de surcharge pour la tâche Cron de mise à jour
+clamav_update_cron_hour: "2"  # Changer l'heure de mise à jour à 2h

@@ -1,4 +1,36 @@
 ---
+# Rôle : grub-password
+#
+# ## Description
+# Ce rôle configure un mot de passe sécurisé pour GRUB afin de limiter l'accès non autorisé aux options de démarrage critiques.
+#
+# ## Références aux benchmarks de sécurité :
+# 1. **CIS (Center for Internet Security)**
+#    - **Recommandation 1.5.3** : Configurer un mot de passe GRUB pour sécuriser les options de démarrage.
+#    - [Lien direct vers CIS Benchmarks](https://downloads.cisecurity.org/#/) *(Connexion requise)*
+#
+# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)**
+#    - **Recommandation R24** : Sécuriser l'accès au bootloader pour éviter des modifications non autorisées.
+#    - [Lien direct vers ANSSI R24](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf) *(Page 28)*
+#
+# ## Fonctionnalités :
+# - Configuration d'un mot de passe GRUB à l'aide d'un fichier `/etc/grub.d/01_password`.
+# - Utilisation de variables Ansible Vault pour sécuriser les mots de passe sensibles.
+# - Mise à jour automatique du fichier de configuration GRUB.
+#
+# ## Variables configurables :
+# - `vault_grub_password` : Mot de passe GRUB, chiffré avec Ansible Vault.
+#
+# ## Notes :
+# Pour gérer des mots de passe sensibles, assurez-vous que le fichier `vault.yml` est chiffré à l'aide de la commande `ansible-vault encrypt`.
+- name: Installer grub-common
+  ansible.builtin.package:
+    name: grub-common
+    state: present
+  tags:
+    - grub
+    - installation
+
 - name: Créer le fichier de configuration GRUB avec un mot de passe si nécessaire
   copy:
     dest: "/etc/grub.d/01_password"

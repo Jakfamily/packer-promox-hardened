@@ -1,0 +1,56 @@
+---
+# Rôle : firewall
+# ## Description
+# Ce rôle installe et configure UFW pour gérer les règles du pare-feu et sécuriser le système.
+#
+# ## Références aux benchmarks de sécurité :
+# 1. **CIS (Center for Internet Security)**
+#    - **Recommandation 3.5.2** : Activer un pare-feu pour sécuriser les connexions entrantes.
+#    - **Recommandation 3.5.3** : Configurer le pare-feu pour autoriser SSH et d'autres services critiques.
+#    - [Lien direct vers CIS Benchmarks](https://downloads.cisecurity.org/#/) *(Connexion requise)*
+#
+# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)**
+#    - **Recommandation R87** : Configurer un pare-feu pour bloquer les connexions non autorisées.
+#    - [Lien direct vers ANSSI R87](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf) *(Page 48)*
+#
+# ## Fonctionnalités :
+# - Installation et activation d'UFW.
+# - Configuration de la politique par défaut.
+# - Ajout de règles dynamiques à partir des variables.
+#
+# ## Variables configurables :
+# - `ufw_default_policy` : Politique par défaut pour les connexions entrantes.
+# - `ufw_service_state` : État du service UFW.
+# - `ufw_rules` : Liste des règles UFW à appliquer.
+
+# Installer UFW
+- name: Installer UFW
+  ansible.builtin.package:
+    name: ufw
+    state: present
+  tags:
+    - firewall
+    - installation
+
+# Activer UFW avec la politique par défaut
+- name: Activer UFW avec la politique par défaut
+  ansible.builtin.ufw:
+    state: "{{ ufw_service_state }}"
+    policy: "{{ ufw_default_policy }}"
+    direction: incoming
+  notify: Recharger UFW
+  tags:
+    - firewall
+    - critical
+
+# Ajouter des règles UFW
+- name: Appliquer les règles UFW
+  ansible.builtin.ufw:
+    rule: allow
+    port: "{{ item.value.port }}"
+    proto: "{{ item.value.proto }}"
+  loop: "{{ ufw_rules | dict2items }}"
+  notify: Recharger UFW
+  tags:
+    - firewall
+    - rules

@@ -14,7 +14,7 @@
     - include_role:
         name: users
     - include_role:
-        name: firewall
+        name: ufw
     - include_role:
         name: fail2ban
 
@@ -38,7 +38,7 @@
     - include_role:
         name: clam-av
     - include_role:
-        name: rsyslog  # Gestion des logs
+        name: rsyslog
 
     # Rapport post-déploiement
     - include_role:

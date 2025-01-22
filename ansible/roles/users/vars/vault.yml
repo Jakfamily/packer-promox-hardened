@@ -1,2 +1,1 @@
-password:
-  "{{ 'debian' | password_hash('sha512') }}"
+password: "{{ 'debian' | password_hash('sha512') }}"

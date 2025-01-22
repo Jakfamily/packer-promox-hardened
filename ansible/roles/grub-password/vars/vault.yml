@@ -1,2 +1,22 @@
 ---
-vault_grub_password: "adminpass"
+# ## Documentation : Gestion avec Ansible Vault
+#
+# ### Chiffrer le fichier `vault.yml`
+# Utilisez la commande suivante pour chiffrer le fichier :
+# ```bash
+# ansible-vault encrypt roles/grub-password/vars/vault.yml
+# ```
+#
+# ### Modifier ou déchiffrer temporairement le fichier
+# Si vous avez besoin de modifier ou de consulter le fichier, utilisez :
+# ```bash
+# ansible-vault edit roles/grub-password/vars/vault.yml
+# ```
+#
+# ### Exécuter le playbook avec le mot de passe Vault
+# Lors de l'exécution du playbook, utilisez l'option `--ask-vault-pass` pour fournir le mot de passe Vault :
+# ```bash
+# ansible-playbook site.yml --ask-vault-pass
+# ```
+
+vault_grub_password: "adminpass" # Mot de passe GRUB, chiffré avec Ansible Vault a changer par un mot de passe sécurisé

@@ -1,38 +1,105 @@
 ---
-# Configurer la rotation des logs critiques (CIS 4.3, ANSSI R92)
+# # Rôle : rsyslog
+
+# ## Description
+# Ce rôle installe et configure rsyslog pour gérer les logs critiques du système et leur rotation. Il assure une traçabilité et une gestion efficace des logs.
+
+# ## Références aux benchmarks de sécurité :
+# 1. **CIS (Center for Internet Security)**
+#    - **Recommandation 4.1.1** : Configurer rsyslog pour collecter les logs critiques.
+#    - **Recommandation 4.3** : Configurer la rotation des logs critiques.
+#    - [Lien direct vers CIS Benchmarks](https://downloads.cisecurity.org/#/) *(Connexion requise)*
+
+# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)**
+#    - **Recommandation R91** : Configurer un système de journalisation centralisée.
+#    - **Recommandation R92** : Configurer une rotation des logs pour éviter leur saturation.
+#    - [Lien ANSSI Guide Linux](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf)
+
+# ## Fonctionnalités :
+# - Installation de `rsyslog`.
+# - Configuration des logs critiques via `/etc/rsyslog.d/critical_logs.conf`.
+# - Configuration de la rotation des logs via `/etc/logrotate.d/critical_logs`.
+# - Redémarrage automatique de rsyslog en cas de modification.
+
+# ## Variables configurables :
+# - `rsyslog_config.rotation_days` : Nombre de jours de rétention des logs.
+# - `rsyslog_config.compression` : Active/désactive la compression des logs.
+# - `rsyslog_config.delay_compression` : Diffère la compression d'un jour.
+# - `rsyslog_config.log_files` : Liste des fichiers à inclure dans la rotation.
+# - `rsyslog_config.critical_logs` : Liste des logs critiques à surveiller.
+
+# ## Exemple de variables :
+# ```yaml
+# rsyslog_config:
+#   rotation_days: 7
+#   compression: true
+#   delay_compression: false
+#   log_files:
+#     - /var/log/auth.log
+#     - /var/log/syslog
+#   critical_logs:
+#     - name: "sudo"
+#       path: "/var/log/sudo.log"
+#     - name: "auth"
+#       path: "/var/log/auth.log"
+
+# ### **Résumé**
+# - **Installation** : Incluse dans le rôle.
+# - **Gestion des logs critiques** : Gérée avec des fichiers dédiés dans `/etc/rsyslog.d/` et `/etc/logrotate.d/`.
+# - **Variables** : Centralisées et personnalisables.
+# - **Documentation** : Ajoutée pour clarifier les fonctionnalités et les références.
+# ## Notes
+# - Les fichiers `/etc/logrotate.d/critical_logs` et `/etc/rsyslog.d/critical_logs.conf` sont entièrement gérés par Ansible.
+# - Le commentaire `{{ ansible_managed }}` est ajouté au début des fichiers pour indiquer qu'ils sont sous gestion d'Ansible.
+# - Toute modification manuelle sera remplacée lors des exécutions futures d'Ansible.
+
+# Installer rsyslog
+- name: Installer rsyslog
+  ansible.builtin.package:
+    name:
+    - rsyslog
+    - logrotate
+    state: present
+  tags:
+    - rsyslog
+    - installation
+
+# Configurer la rotation des logs critiques avec un fichier complet
 - name: Configurer la rotation des logs critiques
-  ansible.builtin.blockinfile:
-    path: /etc/logrotate.d/critical_logs
-    create: yes
-    block: |
+  ansible.builtin.copy:
+    dest: /etc/logrotate.d/critical_logs
+    content: |
+      # {{ ansible_managed }}
       {% for log in rsyslog_config.log_files %}
       {{ log }}
-      {% endfor %} {
-          su root adm
-          rotate {{ rsyslog_config.rotation_days }}
-          daily
-          missingok
-          compress
-          {% if rsyslog_config.compression %}compress{% endif %}
-          {% if rsyslog_config.delay_compression %}delaycompress{% endif %}
-          create 640 root adm
-      }
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - CRITICAL LOG ROTATION"
+      su root adm
+      rotate {{ rsyslog_config.rotation_days }}
+      daily
+      missingok
+      compress
+      {% if rsyslog_config.delay_compression %}delaycompress{% endif %}
+      create 640 root adm
+      {% endfor %}
+    mode: "0644"
+    owner: root
+    group: root
   tags:
     - logs
     - maintenance
 
-# Configurer rsyslog pour surveiller les fichiers critiques (CIS 4.1.1, ANSSI R91)
+# Configurer rsyslog pour surveiller les fichiers critiques avec un fichier complet
 - name: Configurer rsyslog pour surveiller les fichiers critiques
-  ansible.builtin.blockinfile:
-    path: /etc/rsyslog.d/critical_logs.conf
-    create: yes
-    block: |
+  ansible.builtin.copy:
+    dest: /etc/rsyslog.d/critical_logs.conf
+    content: |
+      # {{ ansible_managed }}
       {% for log in rsyslog_config.critical_logs %}
       :programname, isequal, "{{ log.name }}" {{ log.path }}
       {% endfor %}
       *.err /var/log/system_errors.log
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - CRITICAL LOGGING"
+    mode: "0644"
+    owner: root
+    group: root
   notify: Redémarrer rsyslog
   tags:
     - logs

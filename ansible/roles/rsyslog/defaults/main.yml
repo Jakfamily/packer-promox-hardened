@@ -1,0 +1,21 @@
+---
+# Configuration par défaut pour rsyslog
+rsyslog_config:
+  rotation_days: 14               # Durée de conservation des logs en jours
+  compression: true               # Active/désactive la compression des logs
+  delay_compression: true         # Diffère la compression d'un jour
+  log_files:                      # Liste des fichiers à inclure dans la rotation
+    - /var/log/auth.log
+    - /var/log/sudo.log
+    - /var/log/sshd_critical.log
+    - /var/log/system_errors.log
+    - /var/log/clamav/clamav.log
+  critical_logs:                  # Liste des logs critiques pour rsyslog
+    - name: "sudo"
+      path: "/var/log/sudo.log"
+    - name: "sshd"
+      path: "/var/log/sshd_critical.log"
+    - name: "system_errors"
+      path: "/var/log/system_errors.log"
+    - name: "clamav"
+      path: "/var/log/clamav/clamav.log"

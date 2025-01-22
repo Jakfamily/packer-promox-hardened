@@ -1,0 +1,9 @@
+---
+# Exemple de surcharge pour autoriser un port supplémentaire
+# ufw_rules:
+#   ssh:
+#     port: "22"
+#     proto: "tcp"
+#   http:
+#     port: "80"
+#     proto: "tcp"

@@ -1,0 +1,4 @@
+---
+password_policy:
+  minlen: 12
+  minclass: 3

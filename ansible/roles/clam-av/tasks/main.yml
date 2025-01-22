@@ -1,3 +1,51 @@
+---
+# Rôle : clam-av
+#
+# ## Description
+# Ce rôle gère l'installation, la configuration et la planification des tâches pour ClamAV.
+# ClamAV est un antivirus open-source conçu pour détecter les logiciels malveillants, virus et autres menaces.
+#
+# ## Pourquoi utiliser ClamAV ?
+# ClamAV est recommandé pour renforcer la sécurité des systèmes en détectant les fichiers malveillants,
+# conformément aux bonnes pratiques des benchmarks de sécurité.
+#
+# ### Références aux benchmarks de sécurité :
+# 1. **CIS (Center for Internet Security)**
+#    - **Recommandation 4.4.2** : Installer et configurer un antivirus sur les serveurs.
+#    - [Lien direct vers CIS Benchmarks](https://downloads.cisecurity.org/#/) *(Connexion requise)*
+#
+# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)**
+#    - **Recommandation R72** : Mettre en place une protection antivirus et anti-programmes malveillants.
+#    - [Lien direct vers ANSSI R72](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf) *(Page 68)*
+#
+# ## Fonctionnalités du rôle
+# - Installation de ClamAV et de son démon.
+# - Activation et démarrage du service ClamAV.
+# - Planification de mises à jour quotidiennes de la base de données de ClamAV via `freshclam`.
+# - Configuration d'un scan quotidien des fichiers pour détecter les menaces.
+#
+# ## Variables configurables :
+# - `clamav_service_name` : Nom du service ClamAV (par défaut : `clamav-daemon`).
+# - `clamav_update_cron_hour` : Heure de mise à jour quotidienne (par défaut : `3`).
+# - `clamav_scan_cron_hour` : Heure du scan quotidien (par défaut : `4`).
+# - `clamav_log_path` : Chemin du fichier de log pour les résultats des scans.
+#
+# ## Liens utiles :
+# - [Documentation officielle de ClamAV](https://www.clamav.net/)
+# - [CIS Benchmarks - Linux](https://downloads.cisecurity.org/#/) *(Recommandation 4.4.2)*
+# - [ANSSI - Sécurité des systèmes Linux](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf) *(Recommandation R72)*
+
+# Installer ClamAV
+- name: Installer ClamAV et ses composants
+  ansible.builtin.package:
+    name:
+      - clamav
+      - clamav-daemon
+    state: present
+  tags:
+    - clamav
+    - installation
+
 # Activer et démarrer le service ClamAV
 - name: Activer et démarrer le service ClamAV
   ansible.builtin.systemd:

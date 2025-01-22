@@ -1,4 +1,47 @@
 ---
+# # Rôle : lynis
+
+# ## Description
+# Ce rôle installe et configure Lynis, un outil d'audit de sécurité open-source, pour analyser les vulnérabilités du système.
+
+# ## Références aux benchmarks de sécurité :
+# 1. **CIS (Center for Internet Security)**
+#    - Utiliser des outils d'audit pour identifier les failles de sécurité.
+#    - [Lien direct vers CIS Benchmarks](https://downloads.cisecurity.org/#/) *(Connexion requise)*
+
+# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)**
+#    - Mettre en place des outils d'audit pour évaluer régulièrement les configurations de sécurité.
+#    - [Lien direct vers ANSSI Guide Linux](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf) *(Page 54)*
+
+# ## Fonctionnalités :
+# - Installation de Lynis.
+# - Exécution d'un audit initial du système avec enregistrement des résultats.
+# - Planification d'audits réguliers via Cron.
+# - Journaux des audits dans des fichiers spécifiques.
+
+# ## Variables configurables :
+# - `lynis_path` : Chemin vers l'exécutable Lynis.
+# - `lynis_command` : Commande utilisée pour exécuter un audit.
+# - `lynis_log_file` : Chemin du fichier de log pour l'audit initial.
+# - `lynis_history_log` : Chemin du fichier de log pour les audits planifiés.
+# - `lynis_cron_minute` : Minute de planification des audits.
+# - `lynis_cron_hour` : Heure de planification des audits.
+# - `lynis_scan_frequency` : Fréquence des audits (`daily`, `weekly`, `monthly`).
+
+# ## Notes :
+# Assurez-vous que Lynis est disponible dans les dépôts de votre système ou ajoutez-le à vos dépôts personnalisés.
+
+---
+# Installer Lynis
+- name: Installer Lynis
+  ansible.builtin.package:
+    name: lynis
+    state: present
+  tags:
+    - lynis
+    - installation
+
+# Vérifier si Lynis est installé
 - name: Vérifier si Lynis est installé
   stat:
     path: "{{ lynis_path }}"
@@ -7,15 +50,7 @@
     - lynis
     - validation
 
-- name: Installer Lynis si nécessaire
-  package:
-    name: lynis
-    state: present
-  when: not lynis_installed.stat.exists
-  tags:
-    - lynis
-    - critical
-
+# Exécuter un audit système initial avec Lynis
 - name: Exécuter un audit système initial avec Lynis
   shell: "{{ lynis_command }} > {{ lynis_log_file }} 2>&1"
   register: lynis_output
@@ -26,6 +61,7 @@
     - lynis
     - audit
 
+# Enregistrer l'exécution de l'audit initial dans le log global
 - name: Enregistrer l'exécution de l'audit initial dans le log global
   lineinfile:
     path: /var/log/audit_execution.log
@@ -36,6 +72,7 @@
     - lynis
     - logging
 
+# Planifier un audit Lynis quotidien
 - name: Planifier un audit Lynis quotidien
   cron:
     name: "Audit de sécurité avec Lynis"

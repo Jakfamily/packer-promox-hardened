@@ -1,6 +1,0 @@
----
-# Configuration des règles UFW
-ufw_rules:
-  ssh:
-    port: "22"
-    proto: "tcp"

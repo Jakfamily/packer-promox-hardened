@@ -1,4 +1,34 @@
 ---
+# # Rôle : post_deployment_report
+
+# ## Description
+# Ce rôle génère un rapport post-déploiement qui récapitule les journaux d'audit, l'état des services, et la configuration du pare-feu. Cela permet de garantir une transparence et une traçabilité après chaque exécution.
+
+# ## Fonctionnalités
+# - Crée un répertoire pour stocker les rapports post-déploiement.
+# - Génère un rapport organisé avec des sections définies.
+# - Applique des permissions strictes pour sécuriser le rapport.
+
+# ## Variables configurables
+# - `post_deployment_log_dir` : Répertoire où les rapports sont stockés.
+# - `post_deployment_report_file` : Nom du fichier de rapport.
+# - `audit_log_file` : Fichier d'audit à inclure dans la section "Audits".
+# - `services_check_command` : Commande pour répertorier les services actifs.
+# - `firewall_check_command` : Commande pour afficher l'état du pare-feu.
+# - `report_sections` : Liste des sections à inclure dans le rapport (par exemple : "Audits", "Services", "Firewall").
+
+# ## Exemple de variables
+# ```yaml
+# post_deployment_log_dir: "/var/log/post_deployment"
+# post_deployment_report_file: "post_deployment_report.log"
+# audit_log_file: "/var/log/audit_execution.log"
+# services_check_command: "systemctl list-units --type=service --state=running"
+# firewall_check_command: "ufw status verbose"
+# report_sections:
+#   - "Audits"
+#   - "Services"
+#   - "Firewall"
+
 # Créer le répertoire de stockage des logs post-déploiement
 - name: Créer le répertoire de logs post-déploiement
   file:

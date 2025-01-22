@@ -1,19 +1,45 @@
 ---
-# Installer Fail2Ban (CIS 5.4.1, ANSSI R124)
+# Rôle : fail2ban
+# ## Description
+# Ce rôle installe et configure Fail2Ban pour protéger contre les tentatives de connexion non autorisées.
+#
+# ## Références aux benchmarks de sécurité :
+# 1. **CIS (Center for Internet Security)**
+#    - **Recommandation 5.4.1** : Installer un outil de prévention des intrusions basé sur les journaux.
+#    - **Recommandation 5.4.2** : Configurer Fail2Ban pour surveiller SSH et autres services critiques.
+#    - [Lien direct vers CIS Benchmarks](https://downloads.cisecurity.org/#/) *(Connexion requise)*
+#
+# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)**
+#    - **Recommandation R124** : Mettre en place une protection contre les attaques par force brute.
+#    - **Recommandation R125** : Configurer Fail2Ban pour protéger les services critiques comme SSH.
+#    - [Lien direct vers ANSSI R124 et R125](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf) *(Page 92)*
+#
+# ## Fonctionnalités :
+# - Installation de Fail2Ban.
+# - Configuration dynamique via `jail.local`.
+# - Vérification de l'état du service.
+#
+# ## Variables configurables :
+# - `fail2ban_config.bantime` : Durée du ban en secondes.
+# - `fail2ban_config.findtime` : Fenêtre de détection des échecs.
+# - `fail2ban_config.maxretry` : Nombre de tentatives avant le ban.
+# - `fail2ban_config.ignoreip` : Adresses IP à ignorer.
+#
+
+# Installer Fail2Ban
 - name: Installer Fail2Ban
   ansible.builtin.package:
     name: fail2ban
     state: present
   tags:
     - fail2ban
-    - critical
+    - installation
 
-# Configurer Fail2Ban via jail.local (CIS 5.4.2, ANSSI R125)
 - name: Configurer Fail2Ban via jail.local
-  ansible.builtin.blockinfile:
-    path: /etc/fail2ban/jail.local
-    create: yes
-    block: |
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.local
+    content: |
+      # {{ ansible_managed }}
       [DEFAULT]
       bantime = {{ fail2ban_config.bantime }}
       findtime = {{ fail2ban_config.findtime }}
@@ -21,11 +47,10 @@
       ignoreip = {{ fail2ban_config.ignoreip }}
 
       [sshd]
-      enabled = true
-      port = ssh
-      logpath = /var/log/auth.log
-      action = %(action_mwl)s
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - FAIL2BAN CONFIGURATION"
+      enabled = {{ fail2ban_config.jail_config.sshd.enabled }}
+      port = {{ fail2ban_config.jail_config.sshd.port }}
+      logpath = {{ fail2ban_config.jail_config.sshd.logpath }}
+      action = {{ fail2ban_config.jail_config.sshd.action }}
   notify: Redémarrer Fail2Ban
   tags:
     - fail2ban
@@ -38,4 +63,5 @@
   register: fail2ban_status
   changed_when: false
   tags:
+    - fail2ban
     - validation
