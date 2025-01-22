@@ -15,11 +15,6 @@ variable "iso_file" {
   type = string
 }
 
-variable "cloudinit_storage_pool" {
-  type    = string
-  default = "local-lvm"
-}
-
 variable "cores" {
   type    = string
   default = "2"
@@ -108,15 +103,12 @@ source "proxmox-iso" "debian" {
 
   http_directory = "./"
   boot_wait      = "10s"
-  boot_command   = ["<esc><wait>auto url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/cloud-init/preseed.cfg<enter>"]
+  boot_command   = ["<esc><wait>auto url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed/preseed.cfg<enter>"]
   boot_iso {
     type = "scsi"
     iso_file = var.iso_file
     unmount = true
   }
-
-  cloud_init              = true
-  cloud_init_storage_pool = var.cloudinit_storage_pool
 
   vm_name  = trimsuffix(basename(var.iso_file), ".iso")
   cpu_type = var.cpu_type
@@ -135,11 +127,6 @@ source "proxmox-iso" "debian" {
 
 build {
   sources = ["source.proxmox-iso.debian"]
-
-  provisioner "file" {
-    destination = "/etc/cloud/cloud.cfg"
-    source      = "./cloud-init/cloud.cfg"
-  }
 
   provisioner "ansible" {
     playbook_file = "./ansible/hardened.yml"
