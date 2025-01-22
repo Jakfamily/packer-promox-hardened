@@ -1,4 +1,50 @@
 ---
+# # Rôle : SSH-Hardening
+
+# ## Description
+# Ce rôle configure et sécurise le serveur SSH pour répondre aux recommandations des benchmarks de sécurité.
+
+# ## Références :
+# 1. **CIS (Center for Internet Security)**
+#    - **Recommandation 5.1.1** : Configurer SSH pour utiliser uniquement la version 2.
+#    - **Recommandation 5.2.1** : Désactiver la connexion root via SSH.
+#    - [Lien CIS Benchmarks](https://downloads.cisecurity.org/#/) *(Connexion requise)*
+
+# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)**
+#    - **R22** : Configurer SSH pour utiliser un chiffrement robuste.
+#    - **R23** : Désactiver l'accès root via SSH.
+#    - [Guide ANSSI Linux](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf)
+
+# ## Fonctionnalités :
+# - Installation du serveur OpenSSH.
+# - Création d'un groupe d'utilisateurs autorisés.
+# - Ajout des utilisateurs autorisés au groupe.
+# - Configuration sécurisée via `/etc/ssh/sshd_config`.
+
+# ## Variables :
+# - `ssh_allowed_group` : Groupe des utilisateurs autorisés.
+# - `ssh_allowed_users` : Liste des utilisateurs autorisés.
+# - `ssh_config` : Paramètres de configuration SSH.
+
+# ## Exemple de configuration :
+# ```yaml
+# ssh_allowed_group: "sshusers"
+# ssh_allowed_users:
+#   - "admin"
+# ssh_config:
+#   permit_root_login: "no"
+#   protocol: "2"
+#   allow_groups: "
+
+# Installer le serveur SSH si nécessaire
+- name: Installer le paquet OpenSSH Server
+  ansible.builtin.package:
+    name: openssh-server
+    state: present
+  tags:
+    - ssh
+    - installation
+
 # Créer un groupe pour les utilisateurs autorisés à se connecter via SSH
 - name: Créer le groupe sshusers
   ansible.builtin.group:
@@ -19,21 +65,26 @@
     - ssh
     - security
 
-# Configurer SSH de manière sécurisée en utilisant les variables définies
+# Configurer SSH avec un fichier complet géré par Ansible
 - name: Configurer SSH de manière sécurisée
-  ansible.builtin.blockinfile:
-    path: /etc/ssh/sshd_config
-    block: |
-      # Sécurisation SSH
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config
+    content: |
+      # {{ ansible_managed }}
       PermitRootLogin {{ ssh_config.permit_root_login }}
       Protocol {{ ssh_config.protocol }}
       AllowGroups {{ ssh_config.allow_groups }}
-      AllowUsers {{ ssh_allowed_users | join(' ') }}
-      ClientAliveInterval {{ ssh_config.client_alive_interval }}
+      PasswordAuthentication {{ ssh_config.passwordauthentication }}
       GSSAPIAuthentication {{ ssh_config.gssapi_authentication }}
       X11Forwarding {{ ssh_config.x11_forwarding }}
+      AllowTcpForwarding {{ ssh_config.AllowTcpForwarding }}
+      PermitTunnel {{ ssh_config.PermitTunnel }}
+      ClientAliveInterval {{ ssh_config.client_alive_interval }}
       ClientAliveCountMax {{ ssh_config.client_alive_count_max }}
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH SECURITY"
+      MaxAuthTries {{ ssh_config.maxauthtries }}
+    mode: "0600"
+    owner: root
+    group: root
   notify: Restart SSH service
   tags:
     - ssh

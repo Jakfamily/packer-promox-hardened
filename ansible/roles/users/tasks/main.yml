@@ -1,5 +1,44 @@
 ---
-# Créer un utilisateur administrateur (CIS 6.2.1, ANSSI R20)
+# # Rôle : Gestion des utilisateurs et configurations sudo
+#
+# ## Description
+# Ce rôle configure les utilisateurs et sécurise l'accès SSH, sudo et les comptes système. Il applique les recommandations des benchmarks de sécurité CIS et ANSSI.
+#
+# ## Références aux benchmarks de sécurité :
+# 1. **CIS (Center for Internet Security)** :
+#    - **5.2.10** : Limiter l'accès SSH à un groupe d'utilisateurs autorisés.
+#      [Lien direct vers CIS Benchmarks](https://downloads.cisecurity.org/#/)
+#    - **5.1.5** : Configurer sudo pour demander une authentification.
+#      [Lien direct](https://benchmarks.cisecurity.org/tools2/linux/CIS_Debian_Linux_Benchmark_v2.0.1.pdf)
+#    - **5.1.8** : Éviter l'utilisation de `.` dans le `$PATH` avec sudo.
+#    - **6.2.1** : Configurer un compte administrateur dédié.
+#
+# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)** :
+#    - **R12** : Sécuriser sudo en demandant une authentification.
+#    - **R13** : Configurer sudo pour ignorer `.` dans le `$PATH`.
+#    - **R20** : Sécuriser les comptes système avec `/usr/sbin/nologin`.
+#    - **R23** : Limiter l'accès SSH aux utilisateurs autorisés.
+#      [Lien vers le guide ANSSI Linux](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf)
+#
+# ## Fonctionnalités :
+# - Création d'un utilisateur administrateur.
+# - Gestion sécurisée des groupes SSH et sudo.
+# - Application de politiques pour `/etc/sudoers`.
+# - Sécurisation des comptes système et configuration SSH.
+#
+# ## Variables configurables :
+# - `admin_user.name` : Nom de l'utilisateur administrateur.
+# - `admin_user.password` : Mot de passe sécurisé pour l'utilisateur (chiffré avec Ansible Vault).
+# - `admin_user.groups` : Groupes assignés à l'utilisateur administrateur.
+# - `sudo_config.authenticate` : Active ou désactive l'exigence de mot de passe pour sudo.
+# - `sudo_config.requiretty` : Exige un terminal pour sudo.
+#
+# ## Notes :
+# - Les mots de passe sont stockés dans `defaults` ou `vault` et doivent être sécurisés avec Ansible Vault.
+# - Les utilisateurs système sont configurés avec `/usr/sbin/nologin` pour limiter les accès.
+# - Les groupes `sshusers` et `sudo` sont créés pour gérer les accès SSH et sudo.
+
+# Créer un utilisateur administrateur
 - name: Créer un utilisateur administrateur
   ansible.builtin.user:
     name: "{{ admin_user.name }}"
@@ -12,7 +51,7 @@
     - users
     - critical
 
-# Créer un groupe pour les utilisateurs autorisés à se connecter via SSH (CIS 5.2.10, ANSSI R23)
+# Créer un groupe pour les utilisateurs autorisés à se connecter via SSH
 - name: Créer le groupe sshusers
   ansible.builtin.group:
     name: sshusers
@@ -21,7 +60,7 @@
     - users
     - ssh
 
-# Configurer sudo pour demander un mot de passe (CIS 5.1.5, ANSSI R12)
+# Configurer sudo pour demander un mot de passe
 - name: Configurer sudo pour demander un mot de passe
   ansible.builtin.lineinfile:
     path: /etc/sudoers
@@ -33,7 +72,7 @@
     - sudo
     - critical
 
-# Renforcer la configuration sudo (requiretty) (CIS 5.1.5, ANSSI R12)
+# Renforcer la configuration sudo (requiretty)
 - name: Renforcer la configuration sudo (requiretty)
   ansible.builtin.lineinfile:
     path: /etc/sudoers
@@ -44,7 +83,7 @@
   tags:
     - sudo
 
-# Configurer sudo pour ignorer `.` dans $PATH (CIS 5.1.8, ANSSI R13)
+# Configurer sudo pour ignorer `.` dans $PATH
 - name: Configurer sudo pour ignorer `.` dans $PATH
   ansible.builtin.lineinfile:
     path: /etc/sudoers
@@ -54,7 +93,7 @@
   tags:
     - sudo
 
-# Configurer les comptes système avec /usr/sbin/nologin (CIS 6.2.3, ANSSI R20)
+# Configurer les comptes système avec /usr/sbin/nologin
 - name: Configurer les comptes système avec /usr/sbin/nologin
   ansible.builtin.user:
     name: "{{ item }}"
@@ -66,7 +105,7 @@
     - users
     - critical
 
-# Configurer un répertoire temporaire par utilisateur (CIS 1.1.1, ANSSI R15)
+# Configurer un répertoire temporaire par utilisateur
 - name: Activer un répertoire temporaire par utilisateur
   ansible.builtin.lineinfile:
     path: /etc/systemd/system.conf

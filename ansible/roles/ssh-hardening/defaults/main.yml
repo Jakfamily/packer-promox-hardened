@@ -1,0 +1,16 @@
+---
+ssh_allowed_group: "sshusers"  # Groupe des utilisateurs autorisés
+ssh_allowed_users: []          # Liste des utilisateurs autorisés via SSH
+
+ssh_config:
+  permit_root_login: "no"            # Désactive la connexion root
+  protocol: "2"                      # Utilise uniquement SSH version 2
+  allow_groups: "sshusers"           # Limite l'accès au groupe sshusers
+  passwordauthentication: "no"      # Désactive l'authentification par mot de passe
+  gssapi_authentication: "no"       # Désactive l'authentification GSSAPI
+  x11_forwarding: "no"              # Désactive la redirection X11
+  AllowTcpForwarding: "no"          # Désactive le TCP Forwarding
+  PermitTunnel: "no"                # Désactive le tunneling VPN via SSH
+  client_alive_interval: 300        # Envoie un paquet "keep-alive" toutes les 5 minutes
+  client_alive_count_max: 3         # Limite le nombre de tentatives "keep-alive"
+  maxauthtries: 3                   # Limite les tentatives d'authentification échouées

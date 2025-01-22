@@ -1,0 +1,16 @@
+---
+required_packages:
+  base:
+    # Liste des paquets de base à installer
+    - vim
+    - curl
+    - wget
+    - htop
+    - net-tools
+
+  firmware:
+    # Paquets spécifiques en fonction du type de firmware (UEFI ou BIOS)
+    uefi:
+      - grub-efi-amd64-bin
+    bios:
+      - grub-pc-bin
