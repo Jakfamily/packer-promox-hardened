@@ -1,4 +1,4 @@
----
+# ---
 # Exemple de surcharge pour autoriser un port supplémentaire
 # ufw_rules:
 #   ssh:

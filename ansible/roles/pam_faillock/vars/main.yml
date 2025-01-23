@@ -1,5 +1,5 @@
----
-# Exemple de surcharge des paramètres PAM Faillock
-pam_faillock_deny: 3
-pam_faillock_unlock_time: 600  # 10 minutes
-pam_faillock_fail_interval: 120  # 2 minutes
+# ---
+# # Exemple de surcharge des paramètres PAM Faillock
+# pam_faillock_deny: 3
+# pam_faillock_unlock_time: 600  # 10 minutes
+# pam_faillock_fail_interval: 120  # 2 minutes

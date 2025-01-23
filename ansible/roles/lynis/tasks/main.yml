@@ -31,7 +31,6 @@
 # ## Notes :
 # Assurez-vous que Lynis est disponible dans les dépôts de votre système ou ajoutez-le à vos dépôts personnalisés.
 
----
 # Installer Lynis
 - name: Installer Lynis
   ansible.builtin.package:

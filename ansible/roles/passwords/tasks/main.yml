@@ -31,8 +31,6 @@
 # - Le commentaire `{{ ansible_managed }}` est ajouté au début du fichier pour indiquer qu'il est sous gestion d'Ansible.
 # - Toute modification manuelle sera remplacée lors des exécutions futures d'Ansible.
 
-
----
 # Installer libpam-pwquality pour gérer la politique de mots de passe
 - name: Installer libpam-pwquality
   ansible.builtin.package:
@@ -62,7 +60,7 @@
 - name: Vérifier la politique de mots de passe
   ansible.builtin.command:
     cmd: grep -E "minlen|minclass" /etc/security/pwquality.conf
-    register: pwquality_check
-    changed_when: false
+  register: pwquality_check
+  changed_when: false
   tags:
     - validation

@@ -44,7 +44,7 @@
     - installation
 
 - name: Initialiser la base de données AIDE si nécessaire
-  command: aide --init
+  command: aideinit
   args:
     creates: "{{ aide_db_new_path }}"
   register: aide_init

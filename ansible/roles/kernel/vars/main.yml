@@ -1,2 +1,3 @@
-sysctl_params:
-  - { name: "net.ipv4.icmp_echo_ignore_all", value: "0" }  # Désactiver l'ignorance des pings
+# ---
+# sysctl_params:
+#   - { name: "net.ipv4.icmp_echo_ignore_all", value: "0" }  # Désactiver l'ignorance des pings
