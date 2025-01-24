@@ -1,15 +1,15 @@
 ---
-# # Rôle : Gestion des utilisateurs et configurations sudo
-#
-# ## Description
-# Ce rôle configure les utilisateurs et sécurise l'accès SSH, sudo et les comptes système. Il applique les recommandations des benchmarks de sécurité CIS et ANSSI.
-#
-# ## Références aux benchmarks de sécurité :
+# Rôle : Gestion des utilisateurs et configurations sudo
+
+## Description
+# Ce rôle configure et sécurise les utilisateurs, les groupes, l'accès SSH, et les permissions sudo.
+# Il applique les recommandations des benchmarks de sécurité **CIS**, **ANSSI**, et **DISA STIG**,
+# tout en sécurisant les comptes système pour répondre aux normes de sécurité.
+
+## Références aux benchmarks de sécurité :
 # 1. **CIS (Center for Internet Security)** :
 #    - **5.2.10** : Limiter l'accès SSH à un groupe d'utilisateurs autorisés.
-#      [Lien direct vers CIS Benchmarks](https://downloads.cisecurity.org/#/)
 #    - **5.1.5** : Configurer sudo pour demander une authentification.
-#      [Lien direct](https://benchmarks.cisecurity.org/tools2/linux/CIS_Debian_Linux_Benchmark_v2.0.1.pdf)
 #    - **5.1.8** : Éviter l'utilisation de `.` dans le `$PATH` avec sudo.
 #    - **6.2.1** : Configurer un compte administrateur dédié.
 #
@@ -18,25 +18,33 @@
 #    - **R13** : Configurer sudo pour ignorer `.` dans le `$PATH`.
 #    - **R20** : Sécuriser les comptes système avec `/usr/sbin/nologin`.
 #    - **R23** : Limiter l'accès SSH aux utilisateurs autorisés.
-#      [Lien vers le guide ANSSI Linux](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf)
+#    - **R40** : Limiter l'accès à la commande `su` aux utilisateurs autorisés via le groupe `wheel`.
 #
-# ## Fonctionnalités :
-# - Création d'un utilisateur administrateur.
+# 3. **DISA STIG (Defense Information Systems Agency Security Technical Implementation Guide)** :
+#    - **STIG ID RHEL-07-020270** : Désactiver les comptes inactifs après 35 jours.
+#    - Recommandations sur la configuration des comptes utilisateurs et des permissions administratives.
+#
+## Fonctionnalités :
+# - Création et configuration d'un utilisateur administrateur.
 # - Gestion sécurisée des groupes SSH et sudo.
-# - Application de politiques pour `/etc/sudoers`.
-# - Sécurisation des comptes système et configuration SSH.
-#
-# ## Variables configurables :
+# - Configuration sécurisée de `/etc/sudoers`.
+# - Sécurisation des comptes système pour les comptes non utilisés.
+# - Configuration d'accès restreint à la commande `su`.
+# - Désactivation des comptes inactifs après une période définie.
+
+## Variables configurables :
 # - `admin_user.name` : Nom de l'utilisateur administrateur.
 # - `admin_user.password` : Mot de passe sécurisé pour l'utilisateur (chiffré avec Ansible Vault).
 # - `admin_user.groups` : Groupes assignés à l'utilisateur administrateur.
 # - `sudo_config.authenticate` : Active ou désactive l'exigence de mot de passe pour sudo.
 # - `sudo_config.requiretty` : Exige un terminal pour sudo.
-#
-# ## Notes :
+# - `inactive_user_period` : Nombre de jours avant désactivation des comptes inactifs (par défaut : 35 jours).
+
+## Notes :
 # - Les mots de passe sont stockés dans `defaults` ou `vault` et doivent être sécurisés avec Ansible Vault.
-# - Les utilisateurs système sont configurés avec `/usr/sbin/nologin` pour limiter les accès.
+# - Les comptes système sont configurés avec `/usr/sbin/nologin` pour limiter les accès non nécessaires.
 # - Les groupes `sshusers` et `sudo` sont créés pour gérer les accès SSH et sudo.
+# - Le groupe `wheel` est utilisé pour limiter l'accès à la commande `su`.
 
 # Créer un utilisateur administrateur
 - name: Créer un utilisateur administrateur
@@ -51,14 +59,15 @@
     - users
     - critical
 
-# Créer un groupe pour les utilisateurs autorisés à se connecter via SSH
-- name: Créer le groupe sshusers
+# Créer les groupes nécessaires (modulaire via variable)
+- name: Créer les groupes requis
   ansible.builtin.group:
-    name: sshusers
+    name: "{{ item }}"
     state: present
+  loop: "{{ user_groups }}"
   tags:
     - users
-    - ssh
+    - groups
 
 # Configurer sudo pour demander un mot de passe
 - name: Configurer sudo pour demander un mot de passe
@@ -112,6 +121,40 @@
     regexp: '^#?PrivateTmp='
     line: "PrivateTmp=true"
     state: present
+  tags:
+    - security
+    - users
+
+# Configurer un accès restreint pour la commande su
+- name: Configurer l'accès restreint pour la commande su
+  ansible.builtin.copy:
+    dest: /etc/pam.d/su
+    content: |
+      # {{ ansible_managed }}
+      auth required pam_wheel.so use_uid
+    mode: "0644"
+    owner: root
+    group: root
+  tags:
+    - users
+    - security
+
+- name: Ajouter les administrateurs au groupe wheel
+  ansible.builtin.user:
+    name: "{{ admin_user.name }}"
+    groups: wheel
+    append: yes
+  tags:
+    - users
+    - security
+
+# Désactiver les comptes inactifs après une période configurable (STIG RHEL-07-020270)
+- name: Désactiver les comptes inactifs après une période définie
+  ansible.builtin.lineinfile:
+    path: /etc/default/useradd
+    regexp: '^#?INACTIVE='
+    line: "INACTIVE={{ inactive_user_period }}"
+  state: present
   tags:
     - security
     - users

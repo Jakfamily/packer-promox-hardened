@@ -2,34 +2,55 @@
 # # Rôle : passwords
 
 # ## Description
-# Ce rôle configure une politique de mots de passe renforcée à l'aide du module PAM **libpam-pwquality**. Il permet de garantir que les mots de passe répondent à des exigences de sécurité strictes.
+# Ce rôle configure une politique de mots de passe renforcée et applique des paramètres globaux pour garantir la sécurité des comptes utilisateur conformément aux recommandations des benchmarks de sécurité.
 
 # ## Références aux benchmarks de sécurité :
-# 1. **CIS (Center for Internet Security)**
-#    - **Recommandation 6.3.1** : Configurer des politiques de mots de passe renforcées.
-#    - **Recommandation 6.3.2** : Vérifier la conformité de la politique.
-#    - [Lien direct vers CIS Benchmarks](https://downloads.cisecurity.org/#/) *(Connexion requise)*
+# 1. **CIS (Center for Internet Security)** :
+#    - **6.3.1** : Configurer une politique de mots de passe renforcée.
+#    - **6.3.2** : Appliquer des restrictions sur la durée de validité des mots de passe.
+#    - **6.3.3** : Configurer un verrouillage après plusieurs échecs d'authentification.
+#      [Lien vers CIS Benchmarks](https://downloads.cisecurity.org/#/) *(Connexion requise)*
 
-# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)**
-#    - **Recommandation R37** : Appliquer une politique stricte pour les mots de passe.
-#    - [Lien direct vers ANSSI R37](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf) *(Page 42)*
+# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)** :
+#    - **R37** : Configurer une politique stricte pour les mots de passe.
+#    - **R38** : Appliquer un verrouillage après plusieurs échecs de connexion.
+#      [Guide ANSSI Linux](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf)
 
-# 3. **NIS 2 Directive**
-#    - Exiger des politiques robustes pour protéger les systèmes critiques.
+# 3. **DISA STIG (Defense Information Systems Agency Security Technical Implementation Guides)** :
+#    - **RHEL-07-010199** : Appliquer une politique d'expiration des mots de passe.
+#    - **RHEL-07-010200** : Configurer la durée de validité maximale des mots de passe.
+#    - **RHEL-07-010210** : Configurer le verrouillage après tentatives échouées.
+#      [DISA STIG Red Hat Enterprise Linux](https://public.cyber.mil/stigs/) *(Applicable aussi aux distributions basées sur Debian)*
 
 # ## Fonctionnalités :
-# - Installation de `libpam-pwquality`.
-# - Configuration des politiques de mots de passe dans `/etc/security/pwquality.conf`.
-# - Vérification de la conformité avec les recommandations.
+# - Installation de `libpam-pwquality` pour valider la complexité des mots de passe.
+# - Configuration des paramètres globaux de mots de passe dans `/etc/login.defs`.
+# - Application de politiques de verrouillage après plusieurs échecs dans `/etc/security/faillock.conf`.
+# - Configuration de l'algorithme de hachage des mots de passe (SHA-512).
 
 # ## Variables configurables :
 # - `password_policy.minlen` : Longueur minimale des mots de passe.
-# - `password_policy.minclass` : Nombre minimum de classes de caractères (majuscules, chiffres, caractères spéciaux, minuscules).
+# - `password_policy.minclass` : Nombre minimum de classes de caractères (chiffres, majuscules, minuscules, caractères spéciaux).
+# - `password_policy.pass_max_days` : Durée maximale de validité des mots de passe.
+# - `password_policy.pass_min_days` : Durée minimale entre deux changements de mot de passe.
+# - `password_policy.pass_warn_age` : Nombre de jours avant expiration pour avertir l'utilisateur.
+# - `password_policy.fail_lock_deny` : Nombre de tentatives d'authentification échouées avant verrouillage.
 
-# # ## Notes :
-# - Le fichier `/etc/security/pwquality.conf` est entièrement géré par Ansible.
-# - Le commentaire `{{ ansible_managed }}` est ajouté au début du fichier pour indiquer qu'il est sous gestion d'Ansible.
-# - Toute modification manuelle sera remplacée lors des exécutions futures d'Ansible.
+# ## Notes :
+# - Les fichiers `/etc/security/pwquality.conf`, `/etc/login.defs`, et `/etc/security/faillock.conf` sont entièrement gérés par Ansible.
+# - Les recommandations DISA STIG, CIS et ANSSI sont respectées et intégrées dans les configurations.
+# - Toute modification manuelle des fichiers sera remplacée par les exécutions futures d'Ansible.
+
+# ## Exemple de configuration (variables dans defaults/main.yml) :
+# ```yaml
+# password_policy:
+#   minlen: 14
+#   minclass: 3
+#   pass_max_days: 365
+#   pass_min_days: 1
+#   pass_warn_age: 7
+#   fail_lock_deny: 5
+# ```
 
 # Installer libpam-pwquality pour gérer la politique de mots de passe
 - name: Installer libpam-pwquality
@@ -64,3 +85,37 @@
   changed_when: false
   tags:
     - validation
+
+# Configurer les paramètres globaux de mot de passe dans /etc/login.defs
+- name: Configurer les paramètres globaux de mots de passe
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^{{ item.key }}'
+    line: "{{ item.key }} {{ item.value }}"
+  loop:
+    - { key: "PASS_MAX_DAYS", value: "{{ password_policy.pass_max_days }}" }
+    - { key: "PASS_MIN_DAYS", value: "{{ password_policy.pass_min_days }}" }
+    - { key: "PASS_WARN_AGE", value: "{{ password_policy.pass_warn_age }}" }
+  tags:
+    - passwords
+    - security
+
+# Configurer le verrouillage après tentatives échouées
+- name: Configurer le verrouillage après tentatives échouées
+  ansible.builtin.lineinfile:
+    path: /etc/security/faillock.conf
+    regexp: '^#?deny='
+    line: "deny={{ password_policy.fail_lock_deny }}"
+  tags:
+    - passwords
+    - security
+
+# Configurer l'algorithme de hachage des mots de passe
+- name: Configurer l'algorithme de hachage SHA-512
+  ansible.builtin.lineinfile:
+    path: /etc/pam.d/common-password
+    regexp: 'pam_unix\.so'
+    line: "password requisite pam_unix.so sha512"
+  tags:
+    - passwords
+    - security

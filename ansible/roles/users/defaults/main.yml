@@ -2,8 +2,14 @@
 admin_user:
   name: debian
   shell: /bin/bash
-  groups: sudo sshusers
+  groups: sudo sshusers wheel
 
 sudo_config:
   authenticate: true
   requiretty: true
+
+inactive_user_period: 35
+
+user_groups:
+  - sshusers
+  - wheel

@@ -2,3 +2,7 @@
 password_policy:
   minlen: 12
   minclass: 3
+  pass_max_days: 365             # Durée maximale avant l'expiration des mots de passe
+  pass_min_days: 1               # Durée minimale avant de changer le mot de passe
+  pass_warn_age: 7               # Jours d'avertissement avant expiration
+  fail_lock_deny: 5              # Nombre de tentatives échouées avant verrouillage
