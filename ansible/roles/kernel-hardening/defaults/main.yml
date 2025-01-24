@@ -16,3 +16,13 @@ kernel_blacklist_modules:
   - sctp
   - rds
   - tipc
+
+# Liste des systèmes de fichiers à blacklister
+kernel_blacklist_filesystems:
+  - cramfs
+  - freevxfs
+  - jffs2
+  - hfs
+  - hfsplus
+  - squashfs
+  - udf

@@ -72,3 +72,38 @@
   tags:
     - kernel
     - hardening
+
+# Blacklister les systèmes de fichiers inutiles
+- name: Blacklister les systèmes de fichiers inutiles
+  ansible.builtin.lineinfile:
+    path: /etc/modprobe.d/blacklist-filesystems.conf
+    line: "blacklist {{ item }}"
+    create: yes
+  loop: "{{ kernel_blacklist_filesystems }}"
+  tags:
+    - kernel
+    - hardening
+    - filesystem
+
+# Installer AppArmor
+- name: Installer AppArmor et ses utilitaires
+  ansible.builtin.package:
+    name:
+      - apparmor
+      - apparmor-utils
+    state: present
+  tags:
+    - kernel
+    - apparmor
+    - installation
+
+# Activer AppArmor
+- name: Activer AppArmor
+  ansible.builtin.service:
+    name: apparmor
+    state: started
+    enabled: true
+  tags:
+    - kernel
+    - apparmor
+    - activation
