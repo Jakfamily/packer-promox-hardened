@@ -1,9 +1,10 @@
 ---
-# Configuration par défaut des règles UFW
-
-ufw_default_policy: "deny"  # Politique par défaut pour les connexions entrantes
-ufw_service_state: "enabled"  # Activer ou désactiver UFW
+# defaults/main.yml
+ufw_default_policy_incoming: deny
+ufw_default_policy_outgoing: allow
+ufw_service_state: enabled
+ufw_ipv6_enabled: true
 ufw_rules:
-  ssh:
-    port: "22"
-    proto: "tcp"
+  - { port: 22, proto: tcp, comment: "Autoriser SSH" }
+  - { port: 80, proto: tcp, comment: "Autoriser HTTP" }
+  - { port: 443, proto: tcp, comment: "Autoriser HTTPS" }

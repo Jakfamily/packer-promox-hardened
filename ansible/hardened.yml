@@ -14,7 +14,7 @@
     - include_role:
         name: users
     - include_role:
-        name: ufw
+        name: firewall-hardening
     - include_role:
         name: fail2ban
 
@@ -48,7 +48,7 @@
 
     # Appliquer ssh-hardening en dernier
     - include_role:
-        name: ssh-hardening # Rôle SSH durci en dernier
+        name: ssh-hardening
 
     - name: ===== Fin du playbook =====
       debug:
