@@ -1,0 +1,69 @@
+# Configuration d'auditd
+auditd_config:
+  max_log_file_action: keep_logs
+  space_left_action: email
+  action_mail_acct: root
+  admin_space_left_action: halt
+
+# Règles d'audit
+auditd_rules:
+  - comment: "Collecter les événements qui modifient les informations de date et d'heure"
+    rules:
+      - "-a always,exit -F arch=b64 -S adjtimex -S settimeofday -k time-change"
+      - "-a always,exit -F arch=b32 -S adjtimex -S settimeofday -S stime -k time-change"
+      - "-a always,exit -F arch=b64 -S clock_settime -k time-change"
+      - "-a always,exit -F arch=b32 -S clock_settime -k time-change"
+      - "-w /etc/localtime -p wa -k time-change"
+
+  - comment: "Collecter les événements qui modifient les informations utilisateur/groupe"
+    rules:
+      - "-w /etc/group -p wa -k identity"
+      - "-w /etc/passwd -p wa -k identity"
+      - "-w /etc/gshadow -p wa -k identity"
+      - "-w /etc/shadow -p wa -k identity"
+      - "-w /etc/security/opasswd -p wa -k identity"
+
+  - comment: "Collecter les événements qui modifient l'environnement réseau du système"
+    rules:
+      - "-a always,exit -F arch=b64 -S sethostname -S setdomainname -k system-locale"
+      - "-a always,exit -F arch=b32 -S sethostname -S setdomainname -k system-locale"
+      - "-w /etc/issue -p wa -k system-locale"
+      - "-w /etc/issue.net -p wa -k system-locale"
+      - "-w /etc/hosts -p wa -k system-locale"
+      - "-w /etc/network -p wa -k system-locale"
+
+  - comment: "Collecter les modifications des contrôles obligatoires d'accès (MAC)"
+    rules:
+      - "-w /etc/apparmor/ -p wa -k MAC-policy"
+      - "-w /etc/apparmor.d/ -p wa -k MAC-policy"
+
+  - comment: "Collecter les connexions et déconnexions"
+    rules:
+      - "-w /var/log/faillog -p wa -k logins"
+      - "-w /var/log/lastlog -p wa -k logins"
+      - "-w /var/log/tallylog -p wa -k logins"
+
+  - comment: "Collecter les informations d'initiation de session"
+    rules:
+      - "-w /var/run/utmp -p wa -k session"
+      - "-w /var/log/wtmp -p wa -k logins"
+      - "-w /var/log/btmp -p wa -k logins"
+
+  - comment: "Collecter les modifications des permissions d'accès (DAC)"
+    rules:
+      - "-a always,exit -F arch=b64 -S chmod -S fchmod -S fchmodat -F auid>=1000 -F auid!=4294967295 -k perm_mod"
+      - "-a always,exit -F arch=b32 -S chmod -S fchmod -S fchmodat -F auid>=1000 -F auid!=4294967295 -k perm_mod"
+      - "-a always,exit -F arch=b64 -S chown -S fchown -S fchownat -S lchown -F auid>=1000 -F auid!=4294967295 -k perm_mod"
+
+  - comment: "Collecter les tentatives d'accès non autorisées"
+    rules:
+      - "-a always,exit -F arch=b64 -S creat -S open -S openat -S truncate -S ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -k access"
+      - "-a always,exit -F arch=b32 -S creat -S open -S openat -S truncate -S ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -k access"
+      - "-a always,exit -F arch=b64 -S creat -S open -S openat -S truncate -S ftruncate -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -k access"
+
+  - comment: "Collecter le chargement et le déchargement des modules du noyau"
+    rules:
+      - "-w /sbin/insmod -p x -k modules"
+      - "-w /sbin/rmmod -p x -k modules"
+      - "-w /sbin/modprobe -p x -k modules"
+      - "-a always,exit -F arch=b64 -S init_module -S delete_module -k modules"

@@ -10,6 +10,7 @@ rsyslog_config:
     - /var/log/sshd_critical.log
     - /var/log/system_errors.log
     - /var/log/clamav/clamav.log
+    - /var/log/audit/audit.log
   critical_logs:                  # Liste des logs critiques pour rsyslog
     - name: "sudo"
       path: "/var/log/sudo.log"
@@ -19,3 +20,5 @@ rsyslog_config:
       path: "/var/log/system_errors.log"
     - name: "clamav"
       path: "/var/log/clamav/clamav.log"
+    - name: "auditd"
+      path: "/var/log/audit/audit.log"

@@ -46,7 +46,7 @@
 
     # Appliquer ssh-hardening en dernier
     - include_role:
-        name: ssh-hardening  # Rôle SSH durci en dernier
+        name: ssh-hardening # Rôle SSH durci en dernier
 
     - name: ===== Fin du playbook =====
       debug:

@@ -13,8 +13,7 @@ Ce projet propose une solution complète pour la création et la configuration d
 ├── ansible/
 │   ├── hardened.yml      # Playbook Ansible pour le durcissement des systèmes
 │   ├── roles/            # Rôles Ansible pour des configurations spécifiques
-├── cloud-init/
-│   ├── cloud.cfg         # Configuration Cloud-Init pour les VMs
+├── preseed/
 │   ├── preseed.cfg       # Fichier Preseed pour l'installation automatisée de Debian
 ├── debian.pkr.hcl        # Fichier de configuration Packer pour créer l'image Debian
 ├── secrets.pkrvars.hcl   # Variables sensibles pour Packer (non inclus dans le dépôt Git)

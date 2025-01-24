@@ -87,6 +87,7 @@
     - logs
     - maintenance
 
+
 # Configurer rsyslog pour surveiller les fichiers critiques avec un fichier complet
 - name: Configurer rsyslog pour surveiller les fichiers critiques
   ansible.builtin.copy:

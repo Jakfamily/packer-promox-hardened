@@ -1,0 +1,106 @@
+---
+# Rôle : auditd
+# ## Description
+# Ce rôle installe et configure auditd pour la surveillance des événements système critiques.
+#
+# ## Références aux benchmarks de sécurité :
+# 1. **CIS (Center for Internet Security)** : Installation et configuration d'auditd.
+# 2. **ANSSI** : Recommandations pour les événements sensibles.
+
+# Installer auditd et ses plugins
+- name: Installer auditd
+  ansible.builtin.package:
+    name:
+      - auditd
+      - audispd-plugins
+    state: present
+  tags:
+    - auditd
+    - installation
+
+# Configurer GRUB pour activer l'audit dès le démarrage
+- name: Activer l'audit dans GRUB
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_CMDLINE_LINUX=.*'
+    line: 'GRUB_CMDLINE_LINUX="audit=1 audit_backlog_limit=8192"'
+  notify: Mettre à jour GRUB
+  tags:
+    - auditd
+    - configuration
+
+- name: Mettre à jour GRUB
+  ansible.builtin.command:
+    cmd: update-grub
+  tags:
+    - auditd
+    - configuration
+
+# Configurer auditd.conf pour la gestion des logs
+- name: Configurer auditd.conf
+  ansible.builtin.copy:
+    dest: /etc/audit/auditd.conf
+    content: |
+      # {{ ansible_managed }}
+      max_log_file_action = {{ auditd_config.max_log_file_action }}
+      space_left_action = {{ auditd_config.space_left_action }}
+      action_mail_acct = {{ auditd_config.action_mail_acct }}
+      admin_space_left_action = {{ auditd_config.admin_space_left_action }}
+    owner: root
+    group: root
+    mode: '0640'
+  tags:
+    - auditd
+    - configuration
+
+# Configurer journald pour un stockage persistant
+- name: Configurer journald
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf
+    content: |
+      # {{ ansible_managed }}
+      Storage=persistent
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Redémarrer journald
+  tags:
+    - journald
+    - configuration
+
+- name: Redémarrer journald
+  ansible.builtin.service:
+    name: systemd-journald
+    state: restarted
+  tags:
+    - journald
+    - restart
+
+# Configurer les règles d'audit
+- name: Configurer les règles d'audit
+  ansible.builtin.copy:
+    dest: "/etc/audit/rules.d/{{ item.comment | replace(' ', '_') | lower }}.rules"
+    content: |
+      # {{ ansible_managed }}
+      {% for rule in item.rules %}
+      {{ rule }}
+      {% endfor %}
+    owner: root
+    group: root
+    mode: '0640'
+  loop: "{{ auditd_rules }}"
+  loop_control:
+    label: "{{ item.comment }}"
+  notify: Redémarrer auditd
+  tags:
+    - auditd
+    - rules
+
+# Redémarrer auditd après modification des règles
+- name: Redémarrer auditd
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+  tags:
+    - auditd
+    - restart
