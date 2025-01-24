@@ -1,29 +1,44 @@
 ---
-# Rôle : kernel
+# Rôle : kernel-hardening
 #
 # ## Description
 # Ce rôle applique des paramètres sysctl pour durcir le noyau Linux et améliorer la sécurité du système.
-# Il désactive également les protocoles inutilisés en blacklistant les modules correspondants.
+# Il désactive également les protocoles inutilisés, blacklist les modules et les systèmes de fichiers inutiles,
+# et gère la configuration et l'activation d'AppArmor pour renforcer la sécurité du noyau.
 #
 # ## Références aux benchmarks de sécurité :
-# 1. **CIS (Center for Internet Security)**
+# 1. **CIS (Center for Internet Security)** :
 #    - **Recommandation 3.1** : Configurer les paramètres sysctl pour renforcer la sécurité du noyau.
 #    - **Recommandation 3.5** : Désactiver les protocoles inutilisés (DCCP, SCTP, RDS, TIPC).
 #    - [Lien direct vers CIS Benchmarks](https://downloads.cisecurity.org/#/) *(Connexion requise)*
 #
-# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)**
+# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)** :
 #    - **Recommandation R17** : Appliquer des paramètres sysctl pour bloquer les attaques réseau courantes.
 #    - **Recommandation R23** : Désactiver les modules inutilisés pour réduire la surface d'attaque.
 #    - [Lien direct vers ANSSI](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf) *(Page 35)*
 #
+# 3. **DISA STIG (Defense Information Systems Agency Security Technical Implementation Guide)** :
+#    - Recommandations sur la configuration des comptes utilisateurs et des permissions administratives,
+#      y compris la gestion des modules noyau et des paramètres de sécurité.
+#    - [Lien direct vers DISA STIG](https://public.cyber.mil/stigs/) *(Connexion requise)*
+#
+# 4. **NIS 2 Directive** :
+#    - **Article 23** : Garantir une gestion renforcée des modules et des paramètres du noyau pour réduire la surface d'attaque.
+#
 # ## Fonctionnalités :
 # - Configuration des paramètres sysctl persistants dans `/etc/sysctl.d/99-hardening.conf`.
-# - Application immédiate des paramètres sysctl.
-# - Désactivation des protocoles inutilisés via le blacklistage de leurs modules.
+# - Application immédiate des paramètres sysctl pour renforcer la sécurité du noyau.
+# - Blacklist des modules inutilisés (comme DCCP, SCTP, RDS, TIPC) pour réduire la surface d'attaque.
+# - Gestion de la configuration d'AppArmor pour améliorer la sécurité des applications.
+# - Option de blacklister des systèmes de fichiers inutiles (par exemple, `vfat`, `ntfs`, etc.) via des variables modulables.
 #
 # ## Variables configurables :
 # - `sysctl_params` : Liste des paramètres sysctl à appliquer, avec leurs noms et valeurs.
-# - `kernel_blacklist_modules` : Liste des modules noyau à blacklister.
+# - `kernel_blacklist_modules` : Liste des modules noyau à blacklister (par exemple, `dccp`, `sctp`, `rds`, `tipc`).
+# - `kernel_blacklist_filesystems` : Liste des systèmes de fichiers inutiles à blacklister.
+# - `enable_apparmor` : Active ou désactive l'installation et l'activation d'AppArmor.
+# - `kernel_blacklist_usb_storage` : Active ou désactive le blacklistage du module USB storage.
+#
 
 # Configurer et rendre les paramètres sysctl persistants
 - name: Configurer et rendre les paramètres sysctl persistants
@@ -107,3 +122,15 @@
     - kernel
     - apparmor
     - activation
+
+# Blacklister le module USB storage si activé
+- name: Blacklister le module USB storage si activé
+  ansible.builtin.lineinfile:
+    path: /etc/modprobe.d/blacklist.conf
+    line: "blacklist usb_storage"
+    create: yes
+  when: kernel_blacklist_usb_storage | default(true)
+  tags:
+    - kernel
+    - hardening
+    - usb

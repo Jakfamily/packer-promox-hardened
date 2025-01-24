@@ -26,3 +26,6 @@ kernel_blacklist_filesystems:
   - hfsplus
   - squashfs
   - udf
+
+# Liste des modules USB à blacklister (par défaut désactivé)
+kernel_blacklist_usb_storage: true  # Choisissez true pour activer le blacklistage du module usb_storage
