@@ -14,6 +14,8 @@
     - include_role:
         name: users
     - include_role:
+        name: cron-hardening
+    - include_role:
         name: firewall-hardening
     - include_role:
         name: fail2ban
