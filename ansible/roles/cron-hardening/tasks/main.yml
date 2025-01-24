@@ -1,0 +1,93 @@
+---
+# Rôle : cron-hardening
+# ## Description
+# Ce rôle sécurise les fichiers et répertoires liés à `cron` conformément aux benchmarks de sécurité et aux bonnes pratiques.
+#
+# ## Références aux benchmarks de sécurité :
+#
+# 1. **CIS (Center for Internet Security)**
+#    - **Recommandation 5.1.1** : Vérifier que les permissions sur `/etc/crontab` sont configurées correctement.
+#    - **Recommandation 5.1.2** : Vérifier que les permissions sur les répertoires `/etc/cron.hourly`, `/etc/cron.daily`, `/etc/cron.weekly` et `/etc/cron.monthly` sont configurées correctement.
+#    - **Recommandation 5.1.3** : Restreindre l'accès au service `cron` via `/etc/cron.allow` et `/etc/cron.deny`.
+#    - [Lien CIS Benchmarks](https://downloads.cisecurity.org) *(Connexion requise)*
+#
+# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)**
+#    - **Recommandation R43** : Configurer correctement les permissions sur les fichiers et répertoires sensibles, tels que ceux liés aux tâches planifiées.
+#    - **Guide Sécurisation Linux (ANSSI)** : [https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf) *(Pages ~80-85)*.
+#
+# 3. **DISA STIG (Defense Information Systems Agency Security Technical Implementation Guide)**
+#    - **Red Hat Enterprise Linux 8 STIG** : Vérifier les permissions des fichiers et répertoires liés à `cron`.
+#    - [Lien DISA STIG](https://public.cyber.mil/stigs/downloads/) *(Recherche des recommandations spécifiques dans STIG Viewer)*
+#
+# ## Fonctionnalités :
+# - Vérification et configuration des permissions sur `/etc/crontab`.
+# - Sécurisation des répertoires de tâches planifiées : `/etc/cron.hourly`, `/etc/cron.daily`, etc.
+# - Gestion des utilisateurs autorisés à exécuter des tâches `cron` via `/etc/cron.allow`.
+#
+# ## Variables configurables :
+# - **Aucune** pour ce rôle, les configurations sont statiques pour respecter les benchmarks de sécurité.
+#
+# ## Exemple d'utilisation :
+# ```yaml
+# - hosts: all
+#   roles:
+#     - cron-hardening
+# ```
+#
+# ## Notes :
+# - Les permissions configurées dans ce rôle sont définies comme suit :
+#   - Fichier `/etc/crontab` : **0600** (lecture/écriture uniquement pour root).
+#   - Répertoires `/etc/cron.*` : **0700** (accès complet uniquement pour root).
+#   - Fichier `/etc/cron.allow` : **0600** (lecture/écriture uniquement pour root).
+# - Ce rôle utilise le commentaire `{{ ansible_managed }}` pour indiquer que les fichiers sont sous gestion d'Ansible.
+#
+# ## Liens supplémentaires :
+# - [ANSSI Guide Linux](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf)
+# - [DISA STIG Resources](https://public.cyber.mil/stigs/)
+# - [CIS Benchmarks](https://downloads.cisecurity.org)
+
+
+- name: Configurer les permissions de /etc/crontab
+  ansible.builtin.file:
+    path: /etc/crontab
+    owner: root
+    group: root
+    mode: '0600'
+  tags:
+    - cron
+    - permissions
+
+- name: Configurer les permissions de /etc/cron.hourly/
+  ansible.builtin.file:
+    path: /etc/cron.hourly
+    owner: root
+    group: root
+    mode: '0700'
+  tags:
+    - cron
+    - permissions
+
+- name: Configurer les permissions de /etc/cron.daily/
+  ansible.builtin.file:
+    path: /etc/cron.daily
+    owner: root
+    group: root
+    mode: '0700'
+  tags:
+    - cron
+    - permissions
+
+- name: Configurer les utilisateurs autorisés à utiliser cron
+  ansible.builtin.copy:
+    dest: /etc/cron.allow
+    content: |
+      # {{ ansible_managed }}
+      {% for user in cron_hardening_users %}
+      {{ user }}
+      {% endfor %}
+    owner: root
+    group: root
+    mode: '0600'
+  tags:
+    - cron
+    - users

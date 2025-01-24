@@ -1,0 +1,5 @@
+---
+# Variables par défaut pour cron-hardening
+cron_hardening_users:
+  - root
+  - debian
