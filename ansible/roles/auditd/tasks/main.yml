@@ -4,8 +4,45 @@
 # Ce rôle installe et configure auditd pour la surveillance des événements système critiques.
 #
 # ## Références aux benchmarks de sécurité :
-# 1. **CIS (Center for Internet Security)** : Installation et configuration d'auditd.
-# 2. **ANSSI** : Recommandations pour les événements sensibles.
+# 1. **CIS (Center for Internet Security)** :
+#    - **Recommandation 4.1.1** : Installation et activation d'auditd pour surveiller les événements système.
+#    - **Recommandation 4.1.2** : Configuration de règles spécifiques pour collecter des événements critiques.
+#    - **Lien direct vers CIS Benchmarks** : [https://downloads.cisecurity.org/#/](https://downloads.cisecurity.org/#/) *(Connexion requise)*
+#
+# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)** :
+#    - **Recommandation R41** : Journalisation des événements sensibles pour garantir la traçabilité.
+#    - **Recommandation R42** : Activation du service d'audit dès le démarrage du système.
+#    - **Guide Hygiène Informatique (ANSSI)** : [https://www.ssi.gouv.fr/uploads/IMG/pdf/guide_hygiene_informatique_anssi.pdf](https://www.ssi.gouv.fr/uploads/IMG/pdf/guide_hygiene_informatique_anssi.pdf)
+#    - **Guide Sécurisation Linux (ANSSI)** : [https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf)
+#
+# ## Fonctionnalités
+# - Installation d'auditd et des plugins nécessaires.
+# - Configuration de l'audit au démarrage via GRUB.
+# - Application de règles pour surveiller :
+#   - Les modifications des fichiers sensibles.
+#   - Les connexions et déconnexions.
+#   - Les tentatives d'accès non autorisées.
+#   - Les changements au niveau du réseau ou des permissions.
+# - Configuration de journald pour une journalisation persistante.
+# - Gestion des logs avec notification et arrêt en cas de saturation.
+#
+# ## Variables configurables
+# ### Configuration générale d'auditd
+# - `auditd_config.max_log_file_action` : Action lorsque la taille max des journaux est atteinte (par défaut : `keep_logs`).
+# - `auditd_config.space_left_action` : Action en cas de faible espace disque (par défaut : `email`).
+# - `auditd_config.action_mail_acct` : Adresse email pour les notifications (par défaut : `root`).
+# - `auditd_config.admin_space_left_action` : Action lorsque l'espace disque est critique (par défaut : `halt`).
+#
+# ### Règles d'audit
+# - Liste des règles personnalisées à appliquer dans `/etc/audit/rules.d/`.
+#   Exemple :
+#   - Collecter les événements de modification de date et heure.
+#   - Collecter les connexions/déconnexions.
+#   - Collecter les tentatives d'accès non autorisées.
+#
+# ## Notes
+# - Les fichiers générés incluent `{{ ansible_managed }}` pour indiquer qu'ils sont sous gestion Ansible.
+# - Toute modification manuelle sera écrasée lors des prochaines exécutions d'Ansible.
 
 # Installer auditd et ses plugins
 - name: Installer auditd
