@@ -36,7 +36,9 @@
     - include_role:
         name: lynis
     - include_role:
-        name: clam-av
+        name: clamav
+    - include_role:
+        name: auditd
     - include_role:
         name: rsyslog
 
