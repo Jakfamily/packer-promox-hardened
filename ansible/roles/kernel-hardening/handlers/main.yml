@@ -1,0 +1,8 @@
+- name: Recharger sysctl
+  ansible.builtin.command:
+    cmd: sysctl --system
+  changed_when: false
+  register: sysctl_reload
+  tags:
+    - kernel
+    - reload

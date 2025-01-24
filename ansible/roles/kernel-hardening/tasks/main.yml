@@ -3,24 +3,29 @@
 #
 # ## Description
 # Ce rôle applique des paramètres sysctl pour durcir le noyau Linux et améliorer la sécurité du système.
-# Les paramètres sysctl configurent divers aspects de la pile réseau, de la gestion des paquets et d'autres fonctionnalités système.
+# Il désactive également les protocoles inutilisés en blacklistant les modules correspondants.
 #
 # ## Références aux benchmarks de sécurité :
 # 1. **CIS (Center for Internet Security)**
 #    - **Recommandation 3.1** : Configurer les paramètres sysctl pour renforcer la sécurité du noyau.
+#    - **Recommandation 3.5** : Désactiver les protocoles inutilisés (DCCP, SCTP, RDS, TIPC).
 #    - [Lien direct vers CIS Benchmarks](https://downloads.cisecurity.org/#/) *(Connexion requise)*
 #
 # 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)**
 #    - **Recommandation R17** : Appliquer des paramètres sysctl pour bloquer les attaques réseau courantes.
-#    - [Lien direct vers ANSSI R17](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf) *(Page 35)*
+#    - **Recommandation R23** : Désactiver les modules inutilisés pour réduire la surface d'attaque.
+#    - [Lien direct vers ANSSI](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf) *(Page 35)*
 #
 # ## Fonctionnalités :
 # - Configuration des paramètres sysctl persistants dans `/etc/sysctl.d/99-hardening.conf`.
 # - Application immédiate des paramètres sysctl.
+# - Désactivation des protocoles inutilisés via le blacklistage de leurs modules.
 #
 # ## Variables configurables :
 # - `sysctl_params` : Liste des paramètres sysctl à appliquer, avec leurs noms et valeurs.
+# - `kernel_blacklist_modules` : Liste des modules noyau à blacklister.
 
+# Configurer et rendre les paramètres sysctl persistants
 - name: Configurer et rendre les paramètres sysctl persistants
   ansible.builtin.copy:
     dest: /etc/sysctl.d/99-hardening.conf
@@ -35,23 +40,35 @@
     - kernel
     - security
 
-
+# Vérifier que les paramètres sysctl sont appliqués
 - name: Vérifier que les paramètres sysctl sont appliqués
   ansible.builtin.shell: "sysctl -n {{ item.name }}"
   register: sysctl_check
   changed_when: false
-  with_items: "{{ sysctl_params }}"
+  loop: "{{ sysctl_params }}"
   tags:
     - kernel
     - validation
 
+# Afficher les résultats de validation sysctl
 - name: Afficher les résultats de validation sysctl
   debug:
     msg: >
       Paramètre {{ item.item.name }} attendu : {{ item.item.value }},
       actuel : {{ item.stdout }}
-  with_items: "{{ sysctl_check.results }}"
+  loop: "{{ sysctl_check.results }}"
   when: item.stdout != item.item.value
   tags:
     - kernel
     - validation
+
+# Blacklister les modules inutilisés
+- name: Blacklister les modules inutilisés
+  ansible.builtin.lineinfile:
+    path: /etc/modprobe.d/blacklist.conf
+    line: "blacklist {{ item }}"
+    create: yes
+  loop: "{{ kernel_blacklist_modules }}"
+  tags:
+    - kernel
+    - hardening
