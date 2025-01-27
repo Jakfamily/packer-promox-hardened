@@ -11,6 +11,16 @@
 # - ANSSI : R12, R13, R20, R23, R40
 # - DISA STIG : STIG ID RHEL-07-020270
 
+# Créer les groupes nécessaires
+- name: Créer les groupes requis
+  ansible.builtin.group:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ user_groups }}"
+  tags:
+    - users
+    - groups
+
 # Créer un utilisateur administrateur
 - name: Créer un utilisateur administrateur
   ansible.builtin.user:
@@ -23,16 +33,6 @@
   tags:
     - users
     - critical
-
-# Créer les groupes nécessaires
-- name: Créer les groupes requis
-  ansible.builtin.group:
-    name: "{{ item }}"
-    state: present
-  loop: "{{ user_groups }}"
-  tags:
-    - users
-    - groups
 
 # Configurer sudo pour demander un mot de passe
 - name: Configurer sudo pour demander un mot de passe
@@ -65,13 +65,19 @@
     - sudo
 
 # Configurer les comptes système avec /usr/sbin/nologin
+- name: Récupérer les comptes système
+  ansible.builtin.command: getent passwd
+  register: passwd_entries
+  changed_when: false
+  tags:
+    - users
+    - critical
+
 - name: Configurer les comptes système avec /usr/sbin/nologin
   ansible.builtin.user:
-    name: "{{ item }}"
+    name: "{{ item.split(':')[0] }}"
     shell: /usr/sbin/nologin
-  loop: >
-    {{ lookup('ansible.builtin.passwd', wantlist=True)
-      | json_query('[?uid < `1000` & uid != `0`].name') }}
+  loop: "{{ passwd_entries.stdout_lines | select('match', '^[^:]+:[^:]+:[^:]+:[^:]+:[^:]+:[^:]+:[^:]+') | select('search', ':x:[0-9]{1,3}:') }}"
   tags:
     - users
     - critical

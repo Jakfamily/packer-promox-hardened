@@ -1,9 +1,8 @@
 ---
-# defaults/main.yml
+ufw_ipv6_enabled: false
 ufw_default_policy_incoming: deny
 ufw_default_policy_outgoing: allow
 ufw_service_state: enabled
-ufw_ipv6_enabled: true
 ufw_rules:
   - { port: 22, proto: tcp, comment: "Autoriser SSH" }
   - { port: 80, proto: tcp, comment: "Autoriser HTTP" }

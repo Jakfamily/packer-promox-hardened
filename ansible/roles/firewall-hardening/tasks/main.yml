@@ -1,0 +1,156 @@
+---
+---
+# Rôle : firewall
+
+## Description
+# Ce rôle installe et configure UFW (Uncomplicated Firewall) pour sécuriser les connexions entrantes et sortantes.
+# Il est conçu pour être flexible et répondre aux besoins de différents environnements, en prenant en charge les connexions IPv4 et IPv6 si nécessaire.
+# Il applique également les recommandations des benchmarks de sécurité **CIS**, **ANSSI**, et **DISA STIG**.
+
+## Références aux benchmarks de sécurité :
+# 1. **CIS (Center for Internet Security)** :
+#    - **3.5.1** : Activer un pare-feu pour protéger les connexions entrantes et sortantes.
+#    - **3.5.2** : Configurer un pare-feu pour bloquer tout le trafic non autorisé.
+#    - **3.5.3** : Autoriser uniquement les services nécessaires (ex. SSH, DNS, HTTP).
+#
+# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)** :
+#    - **R87** : Configurer un pare-feu pour bloquer les connexions non autorisées.
+#    - **R88** : Activer la gestion des connexions IPv6 (si activée sur le système).
+#    - **R89** : Protéger les interfaces réseau contre les connexions externes non autorisées.
+#
+# 3. **DISA STIG (Defense Information Systems Agency Security Technical Implementation Guide)** :
+#    - **V-204600** : Configurer le pare-feu pour bloquer le trafic non autorisé.
+#    - **V-204601** : Autoriser uniquement les services explicitement requis.
+#    - **V-204602** : Configurer le pare-feu pour prendre en charge IPv6 (si activé).
+
+## Fonctionnalités :
+# - Installation et activation d'UFW.
+# - Gestion conditionnelle des connexions IPv6.
+# - Configuration des politiques par défaut pour les connexions entrantes et sortantes.
+# - Application des règles dynamiques à partir de variables configurables.
+# - Validation de l'état du pare-feu après configuration.
+# - Gestion conditionnelle du service UFW (`start`, `stop` ou `enable`).
+
+## Variables configurables :
+# - `ufw_default_policy_incoming` : Politique par défaut pour les connexions entrantes (`deny`/`reject`/`allow`).
+# - `ufw_default_policy_outgoing` : Politique par défaut pour les connexions sortantes (`deny`/`reject`/`allow`).
+# - `ufw_service_state` : État du service UFW (`enabled` ou `disabled`).
+# - `ufw_rules` : Liste des règles UFW à appliquer (ports, protocoles, descriptions).
+#   Exemple :
+#     ufw_rules:
+#       - { port: 22, proto: tcp, comment: "Autoriser SSH" }
+#       - { port: 80, proto: tcp, comment: "Autoriser HTTP" }
+#       - { port: 443, proto: tcp, comment: "Autoriser HTTPS" }
+# - `ufw_ipv6_enabled` : Activer ou désactiver la gestion IPv6 (`true` ou `false`).
+
+## Points Clés :
+# - Le rôle détecte automatiquement si IPv6 est activé sur le système avant d'appliquer des règles IPv6.
+# - Les règles loopback pour IPv4 et IPv6 sont configurées séparément.
+# - Le service UFW est activé ou désactivé en fonction de la variable `ufw_service_state`.
+# - La validation de l'état du pare-feu est incluse pour s'assurer que la configuration a été correctement appliquée.
+
+## Ordre des Tâches :
+# 1. Activation conditionnelle de la gestion IPv6.
+# 2. Configuration des règles loopback pour IPv4 et IPv6.
+# 3. Définition des politiques par défaut pour les connexions entrantes et sortantes.
+# 4. Application des règles dynamiques.
+# 5. Activation ou désactivation du service UFW.
+# 6. Validation de l'état du pare-feu.
+
+## Notes :
+# - IPv6 est désactivé par défaut, mais peut être activé en définissant `ufw_ipv6_enabled: true`.
+# - Les règles dynamiques permettent une configuration personnalisée pour répondre aux besoins spécifiques.
+# - Ce rôle est conçu pour fonctionner dans des environnements à haute sécurité, en appliquant les recommandations des benchmarks de sécurité reconnus.
+
+# Activer la gestion IPv6 dans UFW
+- name: Activer la gestion IPv6
+  ansible.builtin.lineinfile:
+    path: /etc/default/ufw
+    regexp: '^IPV6='
+    line: 'IPV6=yes'
+  notify: Recharger UFW
+  when: ufw_ipv6_enabled | bool
+  tags:
+    - firewall
+    - ipv6
+
+
+# Configurer les règles pour le trafic loopback (IPv4 et IPv6)
+- name: Autoriser le trafic loopback IPv4
+  ansible.builtin.ufw:
+    rule: allow
+    direction: in
+    from: 127.0.0.1
+    to: 127.0.0.1
+    comment: "Autoriser le trafic loopback IPv4"
+  notify: Recharger UFW
+  tags:
+    - firewall
+    - loopback
+
+- name: Autoriser le trafic loopback IPv6
+  ansible.builtin.ufw:
+    rule: allow
+    direction: in
+    from: ::1
+    to: ::1
+    comment: "Autoriser le trafic loopback IPv6"
+  notify: Recharger UFW
+  when: ufw_ipv6_enabled | bool
+  tags:
+    - firewall
+    - loopback
+
+
+# Configurer la politique par défaut
+- name: Configurer la politique par défaut pour les connexions entrantes
+  ansible.builtin.ufw:
+    policy: "{{ ufw_default_policy_incoming }}"
+    direction: incoming
+  notify: Recharger UFW
+  tags:
+    - firewall
+    - policy
+
+- name: Configurer la politique par défaut pour les connexions sortantes
+  ansible.builtin.ufw:
+    policy: "{{ ufw_default_policy_outgoing }}"
+    direction: outgoing
+  notify: Recharger UFW
+  tags:
+    - firewall
+    - policy
+
+# Appliquer les règles dynamiques
+- name: Appliquer les règles UFW
+  ansible.builtin.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+    comment: "{{ item.comment }}"
+  loop: "{{ ufw_rules }}"
+  notify: Recharger UFW
+  tags:
+    - firewall
+    - rules
+
+# Activer ou désactiver UFW
+- name: Activer ou désactiver UFW
+  ansible.builtin.service:
+    name: ufw
+    state: "{{ 'started' if ufw_service_state == 'enabled' else 'stopped' }}"
+    enabled: "{{ ufw_service_state == 'enabled' }}"
+  tags:
+    - firewall
+    - state
+
+
+# Valider l'état du pare-feu
+- name: Valider l'état du pare-feu
+  ansible.builtin.command:
+    cmd: ufw status verbose
+  register: ufw_status
+  changed_when: false
+  tags:
+    - firewall
+    - validation

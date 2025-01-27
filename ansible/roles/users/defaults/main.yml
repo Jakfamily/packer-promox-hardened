@@ -1,15 +1,28 @@
 ---
+# Variables pour la gestion des utilisateurs et de sudo
 admin_user:
   name: debian
+  # Mot de passe haché SHA-512
+  password: $6$7oqBjyk4cuPEfXcP$wpV5.t1YKmhK9YLrihlhtTurP6MS3TTpRlZI93Gg4BvnArbdLy2Qhvx4Xzjo1/KEyHsZPB5xtAegTGcfhIQXX0
+  # Shell par défaut
   shell: /bin/bash
-  groups: sudo sshusers wheel
+  # Groupes assignés
+  groups:
+    - sudo
+    - sshusers
+    - wheel
 
+# Configuration de sudo
 sudo_config:
+  # Demander un mot de passe pour sudo
   authenticate: true
+  # Exiger un terminal pour sudo
   requiretty: true
 
+# Période d'inactivité avant désactivation des comptes
 inactive_user_period: 35
 
+# Groupes requis
 user_groups:
   - sshusers
   - wheel
