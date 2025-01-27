@@ -1,112 +1,162 @@
-# **Infrastructure Automatisée avec Cloud-Init, Packer, et Ansible**
+# Automatisation d'Infrastructure avec Cloud-Init, Packer et Ansible
 
-## **Description**
+## Vue d'ensemble
+Ce projet fournit une solution complète pour la création et la configuration de machines virtuelles en utilisant Cloud-Init, Packer et Ansible. Il assure un déploiement rapide, sécurisé et standardisé tout en mettant en œuvre des mesures avancées de durcissement des systèmes.
 
-Ce projet propose une solution complète pour la création et la configuration de machines virtuelles (« VMs ») en utilisant **Cloud-Init**, **Packer**, et **Ansible**. L’objectif est de garantir un déploiement rapide, sécurisé et standardisé, tout en intégrant des mesures avancées de durcissement des systèmes.
+![Workflow Infrastructure](schema-de-principe.png)
 
----
+## Architecture du Projet
 
-## **Structure du Projet**
+Le workflow se compose de plusieurs étapes clés :
 
-```bash
+1. **Fichiers de Configuration**
+   - Fichiers de template et variables Packer (.hcl)
+   - Configuration Preseed pour l'installation automatisée de Debian
+   - Playbooks et rôles Ansible pour le durcissement système
+
+2. **Processus d'Exécution**
+   - Packer crée une VM temporaire sur Proxmox
+   - La VM est configurée selon les spécifications de base
+   - Le provisionneur Ansible applique les configurations système
+   - Le template final est créé avec toutes les mesures de durcissement
+
+## Structure des Répertoires
+```
 .
 ├── ansible/
-│   ├── hardened.yml      # Playbook Ansible pour le durcissement des systèmes
-│   ├── roles/            # Rôles Ansible pour des configurations spécifiques
+│   ├── group_vars/       # Variables de groupe Ansible
+│   ├── roles/           # Rôles Ansible pour configurations spécifiques
+│   │   ├── aide/        # Surveillance d'intégrité des fichiers
+│   │   ├── auditd/      # Audit système
+│   │   ├── clamav/      # Antivirus
+│   │   ├── cron-hardening/
+│   │   ├── fail2ban/    # Prévention des intrusions
+│   │   ├── firewall-hardening/
+│   │   ├── grub-password/
+│   │   ├── kernel-hardening/
+│   │   ├── lynis/       # Audit de sécurité
+│   │   ├── packages/    # Gestion des paquets
+│   │   ├── pam_faillock/
+│   │   ├── passwords/   # Politiques de mot de passe
+│   │   ├── post_deployment_report/
+│   │   ├── rsyslog/     # Journalisation système
+│   │   ├── ssh-hardening/
+│   │   └── users/       # Gestion des utilisateurs
+│   ├── hardened.yml     # Playbook principal de durcissement
+│   └── inventory.ini    # Inventaire Ansible
 ├── preseed/
-│   ├── preseed.cfg       # Fichier Preseed pour l'installation automatisée de Debian
-├── debian.pkr.hcl        # Fichier de configuration Packer pour créer l'image Debian
-├── secrets.pkrvars.hcl   # Variables sensibles pour Packer (non inclus dans le dépôt Git)
-├── .gitignore            # Liste des fichiers et dossiers à ignorer par Git
-├── readme.md             # Documentation du projet
+│   └── preseed.cfg      # Installation automatisée Debian
+├── image/               # Ressources d'images
+├── debian.pkr.hcl       # Configuration Packer
+├── secrets.pkrvars.hcl  # Variables sensibles (gitignored)
+└── README.md
 ```
 
----
+## Fonctionnalités
 
-## **Fonctionnalités**
+### 1. Initialisation Système (Cloud-Init)
+- Création automatisée des utilisateurs avec authentification par clé SSH
+- Configuration réseau (DHCP par défaut)
+- Mises à jour initiales des paquets
+- Amorçage de la configuration système
 
-### **Cloud-Init**
+### 2. Création d'Image (Packer)
+- Création automatisée de template Debian
+- Intégration du fichier Preseed pour l'installation sans surveillance
+- Gestion sécurisée des variables sensibles
+- Intégration avec l'environnement de virtualisation Proxmox
 
-- Création automatique des utilisateurs avec authentification par clé SSH.
-- Configuration réseau (DHCP par défaut).
-- Mise à jour et mise à niveau des paquets lors du premier démarrage.
+### 3. Durcissement Système (Ansible)
+- Mesures de sécurité complètes :
+  - Gestion et durcissement des services
+  - Application des permissions système
+  - Configuration de la journalisation
+  - Implémentation des règles de pare-feu
+  - Optimisation des paramètres du noyau
+  - Politiques de mots de passe
+  - Durcissement SSH
+  - Audit système
 
-### **Packer**
+## Prérequis
 
-- Automatisation de la création de templates Debian personnalisés.
-- Utilisation d’un fichier Preseed pour configurer Debian durant l’installation.
-- Gestion des secrets via un fichier de variables.
+- Proxmox VE (testé avec version 7.x+)
+- Packer (version 1.8+)
+- Ansible (version 2.9+)
+- Git pour le contrôle de version
+- Accès SSH aux systèmes cibles
 
-### **Ansible**
+## Guide d'Installation
 
-- Application de règles de durcissement (« hardening ») :
-  - Désactivation des services inutiles.
-  - Renforcement des permissions systèmes.
-  - Configuration de la journalisation (rsyslog).
-  - Gestion des règles de pare-feu.
+### 1. Configuration de l'Environnement
+```bash
+# Cloner le dépôt
+git clone https://github.com/votreuser/projet-infrastructure.git
+cd projet-infrastructure
 
----
+# Créer le fichier de secrets (ne pas commiter ce fichier)
+cp secrets.pkrvars.hcl.example secrets.pkrvars.hcl
+```
 
-## **Prérequis**
+### 2. Configuration
+1. Éditer `secrets.pkrvars.hcl` avec vos variables spécifiques
+2. Modifier `preseed/preseed.cfg` si nécessaire pour votre configuration Debian
+3. Revoir et ajuster les rôles Ansible dans `ansible/roles/` selon vos besoins de sécurité
 
-- **Proxmox VE** pour la gestion des machines virtuelles.
-- **Terraform** pour l’orchestration du déploiement (en option).
-- **Packer** pour créer des images personnalisées.
-- **Ansible** pour appliquer des configurations de durcissement.
+### 3. Construction de l'Image
+```bash
+# Valider la configuration Packer
+packer validate -var-file=secrets.pkrvars.hcl debian.pkr.hcl
 
----
+# Construire l'image
+packer build -var-file=secrets.pkrvars.hcl debian.pkr.hcl
+```
 
-## **Installation et Utilisation**
+### 4. Application du Durcissement
+```bash
+# Exécuter le playbook Ansible
+cd ansible
+ansible-playbook -i inventory.ini hardened.yml
+```
 
-### 1. **Configuration de l’environnement**
+## Description du Workflow
 
-- Installez les outils suivants :
-  - [Packer](https://www.packer.io/)
-  - [Ansible](https://www.ansible.com/)
+Comme illustré dans le schéma :
 
-- Assurez-vous que votre fichier `.gitignore` inclut les éléments sensibles :
+1. **Phase de Construction Initiale**
+   - Packer initie le processus de construction
+   - Crée une VM temporaire sur Proxmox
+   - Applique la configuration de base
 
-  ```plaintext
-  secrets.pkrvars.hcl
-  ```
+2. **Phase de Configuration**
+   - Configuration système via Ansible
+   - Application du durcissement de sécurité
+   - Configuration des services
+   - Implémentation de la sécurité réseau
 
-### 2. **Création d’une image avec Packer**
+3. **Création du Template**
+   - Génération du template final
+   - Prêt pour le déploiement
 
-- Générez une image Debian personnalisée avec la commande suivante :
+## Considérations de Sécurité
 
-  ```bash
-  packer build -var-file=secrets.pkrvars.hcl debian.pkr.hcl
-  ```
+- Toutes les informations sensibles sont stockées dans `secrets.pkrvars.hcl` (gitignored)
+- Le durcissement système suit les meilleures pratiques de l'industrie
+- Les mises à jour de sécurité régulières sont configurées
+- Journalisation et surveillance complètes
+- Application du principe du moindre privilège
 
-### 3. **Déploiement de la VM**
+## Améliorations Futures
 
-- Importez le template généré dans Proxmox.
-- Configurez la VM pour utiliser **Cloud-Init**.
+- [ ] Intégration de Terraform pour une infrastructure complète en tant que code
+- [ ] Framework de tests automatisés
+- [ ] Documentation étendue pour les modules Ansible personnalisés
+- [ ] Intégration de la surveillance
 
-### 4. **Application des configurations via Ansible**
 
-- Exécutez le playbook pour appliquer les règles de durcissement :
+## Auteur
 
-  ```bash
-  ansible-playbook ansible/hardened.yml
-  ```
+**[Faria Jean-Baptiste](https://www.linkedin.com/in/faria-jean-baptiste/)** – Créateur du Projet
 
----
+## Licence
 
-## **Améliorations Futures**
-
-- Intégration complète avec **Terraform** pour orchestrer le déploiement de bout en bout.
-- Ajout de tests automatisés pour valider les configurations appliquées.
-- Documentation plus détaillée sur les modules Ansible personnalisés.
-
----
-
-## **Contributeur**
-
-- **[Faria Jean-Baptiste](https://www.linkedin.com/in/faria-jean-baptiste/)** – Créateur du projet.
-
----
-
-## **Licence**
-
-Ce projet est sous licence MIT. Consultez le fichier `LICENSE` pour plus d'informations.
+Ce projet est sous licence MIT - voir le fichier `LICENSE` pour plus de détails.
