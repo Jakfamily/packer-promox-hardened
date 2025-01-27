@@ -3,7 +3,7 @@
 ## Vue d'ensemble
 Ce projet fournit une solution complète pour la création et la configuration de machines virtuelles en utilisant Cloud-Init, Packer et Ansible. Il assure un déploiement rapide, sécurisé et standardisé tout en mettant en œuvre des mesures avancées de durcissement des systèmes.
 
-![Workflow Infrastructure](/image/schema-de-principe.png)
+![Workflow Infrastructure](image/shema-de-principe.png)
 
 ## Architecture du Projet
 
