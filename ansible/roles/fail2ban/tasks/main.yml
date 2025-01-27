@@ -56,6 +56,12 @@
     - fail2ban
     - security
 
+- name: S'assurer que Fail2Ban est démarré
+  ansible.builtin.service:
+    name: fail2ban
+    state: restarted
+    enabled: true
+
 # Vérifier le statut de Fail2Ban
 - name: Vérifier le statut de Fail2Ban
   ansible.builtin.command:
