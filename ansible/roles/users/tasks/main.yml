@@ -7,44 +7,9 @@
 # tout en sécurisant les comptes système pour répondre aux normes de sécurité.
 
 ## Références aux benchmarks de sécurité :
-# 1. **CIS (Center for Internet Security)** :
-#    - **5.2.10** : Limiter l'accès SSH à un groupe d'utilisateurs autorisés.
-#    - **5.1.5** : Configurer sudo pour demander une authentification.
-#    - **5.1.8** : Éviter l'utilisation de `.` dans le `$PATH` avec sudo.
-#    - **6.2.1** : Configurer un compte administrateur dédié.
-#
-# 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)** :
-#    - **R12** : Sécuriser sudo en demandant une authentification.
-#    - **R13** : Configurer sudo pour ignorer `.` dans le `$PATH`.
-#    - **R20** : Sécuriser les comptes système avec `/usr/sbin/nologin`.
-#    - **R23** : Limiter l'accès SSH aux utilisateurs autorisés.
-#    - **R40** : Limiter l'accès à la commande `su` aux utilisateurs autorisés via le groupe `wheel`.
-#
-# 3. **DISA STIG (Defense Information Systems Agency Security Technical Implementation Guide)** :
-#    - **STIG ID RHEL-07-020270** : Désactiver les comptes inactifs après 35 jours.
-#    - Recommandations sur la configuration des comptes utilisateurs et des permissions administratives.
-#
-## Fonctionnalités :
-# - Création et configuration d'un utilisateur administrateur.
-# - Gestion sécurisée des groupes SSH et sudo.
-# - Configuration sécurisée de `/etc/sudoers`.
-# - Sécurisation des comptes système pour les comptes non utilisés.
-# - Configuration d'accès restreint à la commande `su`.
-# - Désactivation des comptes inactifs après une période définie.
-
-## Variables configurables :
-# - `admin_user.name` : Nom de l'utilisateur administrateur.
-# - `admin_user.password` : Mot de passe sécurisé pour l'utilisateur (chiffré avec Ansible Vault).
-# - `admin_user.groups` : Groupes assignés à l'utilisateur administrateur.
-# - `sudo_config.authenticate` : Active ou désactive l'exigence de mot de passe pour sudo.
-# - `sudo_config.requiretty` : Exige un terminal pour sudo.
-# - `inactive_user_period` : Nombre de jours avant désactivation des comptes inactifs (par défaut : 35 jours).
-
-## Notes :
-# - Les mots de passe sont stockés dans `defaults` ou `vault` et doivent être sécurisés avec Ansible Vault.
-# - Les comptes système sont configurés avec `/usr/sbin/nologin` pour limiter les accès non nécessaires.
-# - Les groupes `sshusers` et `sudo` sont créés pour gérer les accès SSH et sudo.
-# - Le groupe `wheel` est utilisé pour limiter l'accès à la commande `su`.
+# - CIS : 5.2.10, 5.1.5, 5.1.8, 6.2.1
+# - ANSSI : R12, R13, R20, R23, R40
+# - DISA STIG : STIG ID RHEL-07-020270
 
 # Créer un utilisateur administrateur
 - name: Créer un utilisateur administrateur
@@ -59,7 +24,7 @@
     - users
     - critical
 
-# Créer les groupes nécessaires (modulaire via variable)
+# Créer les groupes nécessaires
 - name: Créer les groupes requis
   ansible.builtin.group:
     name: "{{ item }}"
@@ -75,7 +40,6 @@
     path: /etc/sudoers
     regexp: '^Defaults\s+.*!authenticate'
     line: "Defaults    {{ 'authenticate' if sudo_config.authenticate else '!authenticate' }}"
-    state: present
     validate: "/usr/sbin/visudo -cf %s"
   tags:
     - sudo
@@ -87,7 +51,6 @@
     path: /etc/sudoers
     regexp: '^Defaults\s+.*requiretty'
     line: "Defaults    {{ 'requiretty' if sudo_config.requiretty else '!requiretty' }}"
-    state: present
     validate: "/usr/sbin/visudo -cf %s"
   tags:
     - sudo
@@ -97,7 +60,6 @@
   ansible.builtin.lineinfile:
     path: /etc/sudoers
     line: "Defaults    secure_path=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\""
-    state: present
     validate: "/usr/sbin/visudo -cf %s"
   tags:
     - sudo
@@ -120,7 +82,6 @@
     path: /etc/systemd/system.conf
     regexp: '^#?PrivateTmp='
     line: "PrivateTmp=true"
-    state: present
   tags:
     - security
     - users
@@ -154,7 +115,6 @@
     path: /etc/default/useradd
     regexp: '^#?INACTIVE='
     line: "INACTIVE={{ inactive_user_period }}"
-  state: present
   tags:
     - security
     - users

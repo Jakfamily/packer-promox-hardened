@@ -1,0 +1,2 @@
+# group_vars/all.yml
+ansible_managed: "Configuration gérée par Ansible - ne pas modifier."

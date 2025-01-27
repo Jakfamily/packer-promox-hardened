@@ -8,9 +8,13 @@
       debug:
         msg: "Déploiement commencé : Durcissement CIS avec gestion des utilisateurs et services."
 
-    # Installer les paquets nécessaires
+    - include_role:
+        name: grub-password
+    - include_role:
+        name: kernel-hardening
     - include_role:
         name: packages
+
     - include_role:
         name: users
     - include_role:
@@ -25,12 +29,6 @@
         name: passwords
     - include_role:
         name: pam_faillock
-
-    # Sécurisation du noyau et GRUB
-    - include_role:
-        name: kernel-hardening
-    - include_role:
-        name: grub-password
 
     # Surveillance et audit
     - include_role:

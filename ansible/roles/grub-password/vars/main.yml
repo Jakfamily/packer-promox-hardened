@@ -19,4 +19,4 @@
 # ansible-playbook site.yml --ask-vault-pass
 # ```
 
-vault_grub_password: "adminpass" # Mot de passe GRUB, chiffré avec Ansible Vault a changer par un mot de passe sécurisé
+# vault_grub_password: "adminpass" # Mot de passe GRUB, chiffré avec Ansible Vault a changer par un mot de passe sécurisé

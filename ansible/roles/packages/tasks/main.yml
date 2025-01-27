@@ -1,4 +1,25 @@
 ---
+# Rôle : packages
+#
+# ## Description
+# Ce rôle gère l'installation et la configuration des packages essentiels pour un système durci.
+# Il suit les recommandations des benchmarks de sécurité :
+# - **CIS (Center for Internet Security)** :
+#   - **1.1.1** : Détecter le type de firmware (UEFI ou BIOS).
+#   - **1.2.3** : Mettre à jour les dépôts de paquets.
+#   - **1.7** : Journaliser les actions liées à l'installation de logiciels.
+# - **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)** :
+#   - **R54** : Identifier le type de firmware pour adapter les configurations (UEFI/BIOS).
+#   - **R62** : Installer uniquement les paquets nécessaires, en respectant la mise à jour des dépôts.
+# - **DISA STIG (Defense Information Systems Agency Security Technical Implementation Guide)** :
+#   - **RHEL-07-020250** : S'assurer que tous les logiciels installés proviennent de dépôts approuvés.
+#
+# ## Fonctionnalités
+# - Met à jour les dépôts APT.
+# - Détecte le type de firmware (UEFI/BIOS).
+# - Installe les packages requis en fonction du type de firmware.
+# - Journalise les actions d'installation pour audit.
+
 # Mise à jour des dépôts APT (CIS 1.2.3, ANSSI R62)
 - name: Mettre à jour les dépôts APT
   ansible.builtin.apt:
@@ -8,18 +29,25 @@
     - packages
     - critical
 
-# Détecter le type de firmware (UEFI/BIOS) avec Ansible facts (Les Ansible facts sont des données collectées automatiquement par Ansible sur les hôtes cibles)  (CIS 1.1.1, ANSSI R54)
+# Détecter le type de firmware (UEFI/BIOS) (CIS 1.1.1, ANSSI R54)
 - name: Détecter le type de firmware (UEFI/BIOS)
   ansible.builtin.set_fact:
     firmware_type: "{{ 'UEFI' if ansible_facts.firmware.vendor is defined else 'BIOS' }}"
   tags:
     - packages
 
+# Vérifier le type de firmware (debug optionnel)
+- name: Vérifier la valeur de firmware_type
+  ansible.builtin.debug:
+    msg: "Le type de firmware détecté est : {{ firmware_type }}"
+  tags:
+    - debug
+
 # Installer tous les packages requis (CIS 1.2.3, ANSSI R62)
 - name: Installer tous les packages nécessaires
   ansible.builtin.package:
     name: >
-      {{ required_packages.base + [required_packages.firmware[firmware_type | lower]] }}
+      {{ required_packages.base + required_packages.firmware[firmware_type | lower] }}
     state: present
   register: package_installation
   tags:

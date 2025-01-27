@@ -1,7 +1,9 @@
 ---
-- name: Update GRUB
-  command: update-grub
-  when: grub_update_needed  # N'exécute le handler que si grub_update_needed est vrai
+
+- name: Mettre à jour la configuration GRUB
+  ansible.builtin.command:
+    cmd: grub-mkconfig -o /boot/grub/grub.cfg
+  notify: Update GRUB
   tags:
     - grub
-    - service-restart
+    - update

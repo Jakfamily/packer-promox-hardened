@@ -7,48 +7,42 @@
 # ## Références aux benchmarks de sécurité :
 # 1. **CIS (Center for Internet Security)**
 #    - **Recommandation 1.5.3** : Configurer un mot de passe GRUB pour sécuriser les options de démarrage.
-#    - [Lien direct vers CIS Benchmarks](https://downloads.cisecurity.org/#/) *(Connexion requise)*
 #
 # 2. **ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)**
 #    - **Recommandation R24** : Sécuriser l'accès au bootloader pour éviter des modifications non autorisées.
-#    - [Lien direct vers ANSSI R24](https://www.ssi.gouv.fr/uploads/IMG/pdf/anssi-guide_linux.pdf) *(Page 28)*
 #
 # ## Fonctionnalités :
-# - Configuration d'un mot de passe GRUB à l'aide d'un fichier `/etc/grub.d/01_password`.
-# - Utilisation de variables Ansible Vault pour sécuriser les mots de passe sensibles.
-# - Mise à jour automatique du fichier de configuration GRUB.
-#
-# ## Variables configurables :
-# - `vault_grub_password` : Mot de passe GRUB, chiffré avec Ansible Vault.
-#
-# ## Notes :
-# Pour gérer des mots de passe sensibles, assurez-vous que le fichier `vault.yml` est chiffré à l'aide de la commande `ansible-vault encrypt`.
-- name: Installer grub-common
+# - Configuration d'un mot de passe GRUB à l'aide du fichier `/etc/grub.d/01_password`.
+# - Utilisation d'Ansible Vault pour protéger le mot de passe sensible.
+# - Mise à jour automatique de GRUB si le fichier de configuration est modifié.
+
+- name: Vérifier si le fichier de mot de passe GRUB existe
+  ansible.builtin.stat:
+    path: "/etc/grub.d/01_password"
+  register: grub_password_file_stat
+  tags:
+    - grub
+    - security
+
+- name: Installer les paquets Grub nécessaires
   ansible.builtin.package:
-    name: grub-common
+    name: >-
+      {{ ['grub-common', 'grub-pc-bin'] + (['grub-firmware-riscv64'] if grub_firmware_issues | default(false) else []) }}
     state: present
   tags:
     - grub
     - installation
 
-- name: Installer les paquets Grub firmware
-  ansible.builtin.package:
-    name: grub-firmware-riscv64
-    state: present
-  when: grub_firmware_issues
-  tags:
-    - grub
-    - firmware
-
-- name: Créer le fichier de configuration GRUB avec un mot de passe si nécessaire
-  copy:
+- name: Créer le fichier de configuration GRUB avec un mot de passe
+  ansible.builtin.copy:
     dest: "/etc/grub.d/01_password"
     content: |
       set superusers="admin"
-      password_pbkdf2 admin {{ vault_grub_password }} #utilise le chiffrement PBKDF2 pour stocker le mot de passe
+      password_pbkdf2 admin {{ vault_grub_password }}  # Utilise PBKDF2 pour le mot de passe
     mode: "0755"
-  when: not grub_password_file.stat.exists
-  changed_when: true  # Indique que cette tâche a modifié l'état, ce qui déclenche le handler
+    owner: root
+    group: root
+  when: not grub_password_file_stat.stat.exists
   notify: Update GRUB
   tags:
     - grub

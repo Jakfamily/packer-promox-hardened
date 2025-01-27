@@ -9,8 +9,8 @@ required_packages:
     - net-tools
 
   firmware:
-    # Paquets spécifiques en fonction du type de firmware (UEFI ou BIOS)
-    uefi:
-      - grub-efi-amd64-bin
-    bios:
-      - grub-pc-bin
+      uefi:
+        - shim-signed
+        - grub-efi
+      bios:
+        - grub-pc
