@@ -1,7 +1,7 @@
-# Automatisation d'Infrastructure avec Packer et Ansible
+# Automatisation d'Infrastructure avec Packer, Preseed et Ansible
 
 ## Vue d'ensemble
-Ce projet fournit une solution complète pour la création et la configuration de machines virtuelles en utilisant Cloud-Init, Packer et Ansible. Il assure un déploiement rapide, sécurisé et standardisé tout en mettant en œuvre des mesures avancées de durcissement des systèmes.
+Ce projet fournit une solution complète pour la création et la configuration de machines virtuelles en utilisant Packer, Preseed et Ansible. Il assure un déploiement rapide, sécurisé et standardisé tout en mettant en œuvre des mesures avancées de durcissement des systèmes.
 
 ![Workflow Infrastructure](image/shema-de-principe.png)
 
@@ -54,7 +54,7 @@ Le workflow se compose de plusieurs étapes clés :
 
 ## Fonctionnalités
 
-### 1. Initialisation Système (Cloud-Init)
+### 1. Initialisation Système (Preseed)
 - Création automatisée des utilisateurs avec authentification par clé SSH
 - Configuration réseau (DHCP par défaut)
 - Mises à jour initiales des paquets
