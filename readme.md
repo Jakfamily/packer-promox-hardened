@@ -148,7 +148,8 @@ Comme illustré dans le schéma :
 ## Améliorations Futures
 
 - [ ] Intégration de Terraform pour une infrastructure complète en tant que code
-- [ ] Framework de tests automatisés
+- [ ] Optimisation de la préconfiguration (Preseed): Améliorer le fichier `preseed.cfg` pour inclure plus de scénarios personnalisés, comme le partitionnement chiffré.
+- [ ] Framework de tests automatisés : Ajouter un framework (InSpec, Molecule) pour valider automatiquement les configurations après le déploiement.
 - [ ] Documentation étendue pour les modules Ansible personnalisés
 - [ ] Intégration de la surveillance
 
