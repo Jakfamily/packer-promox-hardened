@@ -1,10 +1,15 @@
 ---
-  - name: Restart auditd
-    ansible.builtin.service:
-      name: auditd
-      state: restarted
+- name: Mettre à jour GRUB
+  ansible.builtin.command:
+    cmd: update-grub
+  become: true
 
-  - name: Restart journald
-    ansible.builtin.service:
-      name: systemd-journald
-      state: restarted
+- name: Redémarrer auditd
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+
+- name: Redémarrer journald
+  ansible.builtin.service:
+    name: systemd-journald
+    state: restarted

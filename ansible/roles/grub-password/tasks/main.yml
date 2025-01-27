@@ -36,13 +36,17 @@
 - name: Créer le fichier de configuration GRUB avec un mot de passe
   ansible.builtin.copy:
     dest: "/etc/grub.d/01_password"
-    content: |
-      set superusers="admin"
-      password_pbkdf2 admin {{ vault_grub_password }}  # Utilise PBKDF2 pour le mot de passe
     mode: "0755"
     owner: root
     group: root
-  when: not grub_password_file_stat.stat.exists
+    content: |
+      #!/bin/sh
+      set -e
+
+      cat << 'EOF'
+      set superusers="admin"
+      password_pbkdf2 admin {{ vault_grub_password }}
+      EOF
   notify: Update GRUB
   tags:
     - grub

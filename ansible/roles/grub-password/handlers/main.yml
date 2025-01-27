@@ -1,9 +1,5 @@
 ---
-
-- name: Mettre à jour la configuration GRUB
+- name: Update GRUB
   ansible.builtin.command:
     cmd: grub-mkconfig -o /boot/grub/grub.cfg
-  notify: Update GRUB
-  tags:
-    - grub
-    - update
+  become: true
