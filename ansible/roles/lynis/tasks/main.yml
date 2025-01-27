@@ -31,30 +31,18 @@
 # ## Notes :
 # Assurez-vous que Lynis est disponible dans les dépôts de votre système ou ajoutez-le à vos dépôts personnalisés.
 
-# Installer Lynis
-- name: Installer Lynis
-  ansible.builtin.package:
-    name: lynis
-    state: present
-  tags:
-    - lynis
-    - installation
-
 # Vérifier si Lynis est installé
 - name: Vérifier si Lynis est installé
   stat:
     path: "{{ lynis_path }}"
   register: lynis_installed
-  tags:
-    - lynis
-    - validation
 
 # Exécuter un audit système initial avec Lynis
 - name: Exécuter un audit système initial avec Lynis
   shell: "{{ lynis_command }} > {{ lynis_log_file }} 2>&1"
   register: lynis_output
   changed_when: false
-  ignore_errors: true
+  failed_when: false
   when: lynis_installed.stat.exists
   tags:
     - lynis
@@ -66,7 +54,11 @@
     path: /var/log/audit_execution.log
     create: yes
     line: "[{{ ansible_date_time.date }} {{ ansible_date_time.time }}] Audit initial Lynis exécuté avec succès."
-  when: lynis_output.rc == 0
+  # On vérifie d'abord que la tâche précédente a tourné et a réussi
+  when:
+    - lynis_installed.stat.exists
+    - lynis_output is defined
+    - lynis_output.rc == 0
   tags:
     - lynis
     - logging
