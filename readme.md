@@ -1,4 +1,4 @@
-# Automatisation d'Infrastructure avec Cloud-Init, Packer et Ansible
+# Automatisation d'Infrastructure avec Packer et Ansible
 
 ## Vue d'ensemble
 Ce projet fournit une solution complète pour la création et la configuration de machines virtuelles en utilisant Cloud-Init, Packer et Ansible. Il assure un déploiement rapide, sécurisé et standardisé tout en mettant en œuvre des mesures avancées de durcissement des systèmes.
