@@ -60,6 +60,13 @@
 # - IPv6 est désactivé par défaut, mais peut être activé en définissant `ufw_ipv6_enabled: true`.
 # - Les règles dynamiques permettent une configuration personnalisée pour répondre aux besoins spécifiques.
 # - Ce rôle est conçu pour fonctionner dans des environnements à haute sécurité, en appliquant les recommandations des benchmarks de sécurité reconnus.
+- name: installer ufw
+  ansible.builtin.package:
+    name: ufw
+    state: present
+  tags:
+    - firewall
+    - installation
 
 # Activer la gestion IPv6 dans UFW
 - name: Activer la gestion IPv6
