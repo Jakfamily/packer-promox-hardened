@@ -46,6 +46,7 @@
       - apparmor
       - apparmor-utils
     state: present
+    update_cache: true
   tags:
     - kernel
     - apparmor

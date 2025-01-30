@@ -115,6 +115,17 @@
     - journald
     - restart
 
+- name: Créer le dossier pour les règles auditd
+  ansible.builtin.file:
+    path: /etc/audit/rules.d/
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags:
+    - auditd
+    - security
+
 # Configurer les règles d'audit
 - name: Configurer les règles d'audit
   ansible.builtin.copy:
@@ -126,7 +137,7 @@
       {% endfor %}
     owner: root
     group: root
-    mode: '0640'
+    mode: '0600'
   loop: "{{ auditd_rules }}"
   loop_control:
     label: "{{ item.comment }}"
@@ -135,11 +146,10 @@
     - auditd
     - rules
 
-# Redémarrer auditd après modification des règles
-- name: Redémarrer auditd
-  ansible.builtin.service:
-    name: auditd
-    state: restarted
+- name: Appliquer les nouvelles règles auditd sans redémarrer
+  ansible.builtin.command:
+    cmd: "auditctl -R /etc/audit/rules.d/"
+  changed_when: true
   tags:
     - auditd
-    - restart
+    - reload

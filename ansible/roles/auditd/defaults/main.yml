@@ -4,8 +4,8 @@ auditd_config:
   space_left_action: email
   action_mail_acct: root
   admin_space_left_action: halt
-  space_left: 100M
-  admin_space_left: 50M
+  space_left: 100
+  admin_space_left: 50
 
 # Règles d'audit
 auditd_rules:
