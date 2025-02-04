@@ -1,0 +1,85 @@
+---
+# ### Documentation des recommandations (CIS, ANSSI, DISA STIG)
+#
+# 🔹 CIS Benchmarks
+# - **10.1** : S'assurer que des outils de détection de logiciels malveillants sont installés et activés.
+# - **10.2** : Mettre à jour régulièrement les bases de signatures de logiciels malveillants.
+# - **10.4** : Planifier des analyses régulières pour identifier les menaces.
+# 👉 Référence : https://www.cisecurity.org/cis-benchmarks
+#
+# 🔹 ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)
+# - **6.1.2** : Déployer des outils pour détecter des fichiers malveillants à l'aide de signatures connues.
+# - **6.4.1** : Automatiser les analyses pour réduire les risques liés aux erreurs humaines.
+# - **6.6.1** : Centraliser les règles et les rapports dans des répertoires sécurisés.
+# 👉 Référence : https://www.ssi.gouv.fr/guide/
+#
+# 🔹 DISA STIG (Defense Information Systems Agency)
+# - **V-230418** : Implémenter un système d’analyse automatisé pour détecter les logiciels malveillants.
+# - **V-230419** : Planifier des analyses régulières des fichiers systèmes (cron ou autre).
+# - **V-230420** : Maintenir les bases de signatures à jour pour garantir leur efficacité.
+# 👉 Référence : https://public.cyber.mil/stigs/
+#
+# Ce rôle implémente les recommandations ci-dessus en :
+# 1. Installant YARA pour la détection des fichiers malveillants.
+# 2. Téléchargeant automatiquement les règles depuis YARAForge.
+# 3. Planifiant des analyses régulières grâce au module `cron`.
+# 4. Centralisant les règles et logs dans des répertoires sécurisés.
+
+  - name: Install dependencies for YARA compilation
+    ansible.builtin.apt:
+      name: "{{ yara_dependencies }}"
+      state: present
+
+  - name: Clone YARA repository
+    ansible.builtin.git:
+      repo: 'https://github.com/VirusTotal/yara.git'
+      dest: '/opt/yara'
+      version: master
+
+  - name: Compile and install YARA
+    ansible.builtin.shell:
+      cmd: |
+        ./bootstrap.sh
+        ./configure
+        make
+        make install
+      chdir: /opt/yara
+
+  - name: Download YARAForge rules pack
+    ansible.builtin.get_url:
+      url: "{{ yara_rules_url }}"
+      dest: "/tmp/yara-forge-rules.zip"
+      mode: "0644"
+
+  - name: Extract YARAForge rules
+    ansible.builtin.unarchive:
+      src: "/tmp/yara-forge-rules.zip"
+      dest: "{{ yara_rules_path }}"
+      remote_src: yes
+
+  - name: Verify YARA rules
+    ansible.builtin.command:
+      cmd: "yara -r {{ yara_rules_path }}"
+    register: yara_verify
+    changed_when: false
+
+  - name: Display verification results
+    ansible.builtin.debug:
+      var: yara_verify.stdout
+
+  - name: Run automatic YARA scan
+    ansible.builtin.command:
+      cmd: "yara -r {{ yara_rules_path }} {{ yara_scan_target }}"
+    register: yara_scan
+    changed_when: false
+
+  - name: Display scan results
+    ansible.builtin.debug:
+      var: yara_scan.stdout
+
+  - name: Schedule YARA scan (cron job)
+    ansible.builtin.cron:
+      name: "Daily YARA scan"
+      minute: "{{ yara_cron_minute }}"
+      hour: "{{ yara_cron_hour }}"
+      job: "yara -r {{ yara_rules_path }} {{ yara_scan_target }} > /var/log/yara_scan.log 2>&1"
