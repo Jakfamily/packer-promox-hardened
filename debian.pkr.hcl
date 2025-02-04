@@ -103,7 +103,7 @@ source "proxmox-iso" "debian" {
 
   http_directory = "./"
   boot_wait      = "10s"
-  boot_command   = ["<esc><wait>auto url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed/preseed.cfg<enter>"]
+  boot_command   = ["<esc><wait>auto url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed/preseedcopy.cfg<enter>"]
   boot_iso {
     type = "scsi"
     iso_file = var.iso_file
