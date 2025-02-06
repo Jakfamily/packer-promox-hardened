@@ -1,4 +1,3 @@
----
 # Rôle : fail2ban
 # ## Description
 # Ce rôle installe et configure Fail2Ban pour protéger contre les tentatives de connexion non autorisées.
@@ -59,15 +58,21 @@
 - name: S'assurer que Fail2Ban est démarré
   ansible.builtin.service:
     name: fail2ban
-    state: restarted
+    state: started
     enabled: true
 
-# Vérifier le statut de Fail2Ban
-- name: Vérifier le statut de Fail2Ban
+# Vérifier si le socket de Fail2Ban existe avant d'exécuter la commande
+- name: Vérifier si le socket de Fail2Ban existe
+  ansible.builtin.stat:
+    path: /var/run/fail2ban/fail2ban.sock
+  register: fail2ban_socket
+
+- name: Vérifier le statut de Fail2Ban si le socket existe
   ansible.builtin.command:
     cmd: fail2ban-client status
   register: fail2ban_status
   changed_when: false
+  when: fail2ban_socket.stat.exists
   tags:
     - fail2ban
     - validation
