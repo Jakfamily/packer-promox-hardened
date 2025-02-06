@@ -55,6 +55,18 @@
     - auditd
     - installation
 
+# Assurer que le dossier des règles auditd existe avant de les appliquer
+- name: Vérifier que le dossier des règles auditd existe
+  ansible.builtin.file:
+    path: /etc/audit/rules.d/
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  tags:
+    - auditd
+    - security
+
 # Configurer GRUB pour activer l'audit dès le démarrage
 - name: Activer l'audit dans GRUB
   ansible.builtin.lineinfile:
@@ -129,7 +141,7 @@
 # Configurer les règles d'audit
 - name: Configurer les règles d'audit
   ansible.builtin.copy:
-    dest: "/etc/audit/rules.d/{{ item.comment | replace(' ', '_') | lower }}.rules"
+    dest: "/etc/audit/rules.d/{{ item.comment | regex_replace('[^a-zA-Z0-9_]', '') | replace(' ', '_') | lower }}.rules"
     content: |
       # {{ ansible_managed }}
       {% for rule in item.rules %}
