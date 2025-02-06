@@ -55,7 +55,7 @@
     - auditd
     - installation
 
-# Assurer que le dossier des règles auditd existe avant de les appliquer
+# Vérifier que le dossier des règles auditd existe
 - name: Vérifier que le dossier des règles auditd existe
   ansible.builtin.file:
     path: /etc/audit/rules.d/
@@ -67,7 +67,7 @@
     - auditd
     - security
 
-# Configurer GRUB pour activer l'audit dès le démarrage
+# Activer l'audit dans GRUB
 - name: Activer l'audit dans GRUB
   ansible.builtin.lineinfile:
     path: /etc/default/grub
@@ -85,7 +85,21 @@
     - auditd
     - configuration
 
-# Configurer auditd.conf pour la gestion des logs
+# Vérifier si auditd est actif et le démarrer si nécessaire
+- name: Vérifier si auditd est actif
+  ansible.builtin.command:
+    cmd: "systemctl is-active auditd"
+  register: auditd_status
+  changed_when: false
+  failed_when: auditd_status.rc not in [0, 3]
+
+- name: Démarrer auditd si nécessaire
+  ansible.builtin.service:
+    name: auditd
+    state: started
+  when: auditd_status.rc == 3
+
+# Configurer auditd.conf
 - name: Configurer auditd.conf
   ansible.builtin.copy:
     dest: /etc/audit/auditd.conf
@@ -104,40 +118,6 @@
     - auditd
     - configuration
 
-# Configurer journald pour un stockage persistant
-- name: Configurer journald
-  ansible.builtin.copy:
-    dest: /etc/systemd/journald.conf
-    content: |
-      # {{ ansible_managed }}
-      Storage=persistent
-    owner: root
-    group: root
-    mode: '0644'
-  notify: Redémarrer journald
-  tags:
-    - journald
-    - configuration
-
-- name: Redémarrer journald
-  ansible.builtin.service:
-    name: systemd-journald
-    state: restarted
-  tags:
-    - journald
-    - restart
-
-- name: Créer le dossier pour les règles auditd
-  ansible.builtin.file:
-    path: /etc/audit/rules.d/
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-  tags:
-    - auditd
-    - security
-
 # Configurer les règles d'audit
 - name: Configurer les règles d'audit
   ansible.builtin.copy:
@@ -153,14 +133,29 @@
   loop: "{{ auditd_rules }}"
   loop_control:
     label: "{{ item.comment }}"
-  notify: Redémarrer auditd
   tags:
     - auditd
     - rules
 
+# Tester chaque règle individuellement
+- name: Tester chaque règle d'audit individuellement
+  ansible.builtin.command:
+    cmd: "auditctl {{ item }}"
+  loop: "{{ auditd_rules | map(attribute='rules') | flatten }}"
+  ignore_errors: true
+  register: auditd_rule_check
+
+- name: Vérifier les erreurs de règles d'audit
+  debug:
+    msg: "Erreur dans la règle : {{ item.item }} -> {{ item.stderr }}"
+  loop: "{{ auditd_rule_check.results }}"
+  when: item.rc != 0
+
+# Appliquer les nouvelles règles si elles sont valides
 - name: Appliquer les nouvelles règles auditd sans redémarrer
   ansible.builtin.command:
     cmd: "auditctl -R /etc/audit/rules.d/"
+  when: auditd_rule_check.failed is not defined or not auditd_rule_check.failed
   changed_when: true
   tags:
     - auditd
