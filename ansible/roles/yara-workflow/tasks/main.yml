@@ -1,5 +1,6 @@
 ---
-# ### Documentation des recommandations (CIS, ANSSI, DISA STIG)
+# Rôle : yara-workflow
+# ## Documentation des recommandations (CIS, ANSSI, DISA STIG)
 #
 # 🔹 CIS Benchmarks
 # - **10.1** : S'assurer que des outils de détection de logiciels malveillants sont installés et activés.
@@ -19,67 +20,74 @@
 # - **V-230420** : Maintenir les bases de signatures à jour pour garantir leur efficacité.
 # 👉 Référence : https://public.cyber.mil/stigs/
 #
-# Ce rôle implémente les recommandations ci-dessus en :
-# 1. Installant YARA pour la détection des fichiers malveillants.
-# 2. Téléchargeant automatiquement les règles depuis YARAForge.
-# 3. Planifiant des analyses régulières grâce au module `cron`.
-# 4. Centralisant les règles et logs dans des répertoires sécurisés.
+# ## Fonctionnalités
+# - Installation de YARA pour la détection des fichiers malveillants.
+# - Gestion des règles YARA (fichier local inclus dans le rôle).
+# - Planification des analyses régulières avec `cron`.
+# - Centralisation des règles et des journaux dans des répertoires sécurisés.
 
-  - name: Install dependencies for YARA compilation
-    ansible.builtin.apt:
-      name: "{{ yara_dependencies }}"
-      state: present
+# Installer les dépendances nécessaires
+- name: Installer les dépendances pour YARA
+  ansible.builtin.apt:
+    name: "{{ yara_dependencies }}"
+    state: present
+  tags:
+    - yara
+    - dependencies
 
-  - name: Clone YARA repository
-    ansible.builtin.git:
-      repo: 'https://github.com/VirusTotal/yara.git'
-      dest: '/opt/yara'
-      version: master
+# Copier les règles YARA depuis le dossier du rôle
+- name: Copier les règles YARA vers le répertoire cible
+  ansible.builtin.copy:
+    src: "rules/yara-rules-full.yar"
+    dest: "{{ yara_rules_path }}/yara-rules-full.yar"
+    owner: root
+    group: root
+    mode: "0644"
+  tags:
+    - yara
+    - rules
 
-  - name: Compile and install YARA
-    ansible.builtin.shell:
-      cmd: |
-        ./bootstrap.sh
-        ./configure
-        make
-        make install
-      chdir: /opt/yara
+# Vérifier les règles YARA
+- name: Vérifier les règles YARA
+  ansible.builtin.command:
+    cmd: "yara -r {{ yara_rules_path }}/yara-rules-full.yar {{ yara_scan_target }}"
+  register: yara_verify
+  changed_when: false
+  tags:
+    - yara
+    - verify
 
-  - name: Download YARAForge rules pack
-    ansible.builtin.get_url:
-      url: "{{ yara_rules_url }}"
-      dest: "/tmp/yara-forge-rules.zip"
-      mode: "0644"
+- name: Afficher les résultats de la vérification
+  ansible.builtin.debug:
+    var: yara_verify.stdout
+  tags:
+    - yara
+    - verify
 
-  - name: Extract YARAForge rules
-    ansible.builtin.unarchive:
-      src: "/tmp/yara-forge-rules.zip"
-      dest: "{{ yara_rules_path }}"
-      remote_src: yes
+# Planifier une analyse automatique YARA
+- name: Planifier une analyse YARA quotidienne
+  ansible.builtin.cron:
+    name: "Analyse quotidienne YARA"
+    minute: "{{ yara_cron_minute }}"
+    hour: "{{ yara_cron_hour }}"
+    job: "yara -r {{ yara_rules_path }}/yara-rules-full.yar {{ yara_scan_target }} > /var/log/yara_scan.log 2>&1"
+  tags:
+    - yara
+    - cron
 
-  - name: Verify YARA rules
-    ansible.builtin.command:
-      cmd: "yara -r {{ yara_rules_path }}"
-    register: yara_verify
-    changed_when: false
+# Exécuter une analyse YARA
+- name: Exécuter une analyse YARA
+  ansible.builtin.command:
+    cmd: "yara -r {{ yara_rules_path }}/yara-rules-full.yar {{ yara_scan_target }}"
+  register: yara_scan
+  changed_when: false
+  tags:
+    - yara
+    - scan
 
-  - name: Display verification results
-    ansible.builtin.debug:
-      var: yara_verify.stdout
-
-  - name: Run automatic YARA scan
-    ansible.builtin.command:
-      cmd: "yara -r {{ yara_rules_path }} {{ yara_scan_target }}"
-    register: yara_scan
-    changed_when: false
-
-  - name: Display scan results
-    ansible.builtin.debug:
-      var: yara_scan.stdout
-
-  - name: Schedule YARA scan (cron job)
-    ansible.builtin.cron:
-      name: "Daily YARA scan"
-      minute: "{{ yara_cron_minute }}"
-      hour: "{{ yara_cron_hour }}"
-      job: "yara -r {{ yara_rules_path }} {{ yara_scan_target }} > /var/log/yara_scan.log 2>&1"
+- name: Afficher les résultats de l'analyse
+  ansible.builtin.debug:
+    var: yara_scan.stdout
+  tags:
+    - yara
+    - scan
