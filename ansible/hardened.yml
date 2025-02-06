@@ -41,8 +41,8 @@
         name: auditd
     - include_role:
         name: rsyslog
-    - include_role:
-        name: yara-workflow
+    #- include_role:
+    #    name: yara-workflow
 
     # Rapport post-déploiement
     - include_role:
