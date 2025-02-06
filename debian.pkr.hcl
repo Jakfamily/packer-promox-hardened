@@ -103,7 +103,7 @@ source "proxmox-iso" "debian" {
 
   http_directory = "./"
   boot_wait      = "10s"
-  boot_command   = ["<esc><wait>auto url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed/preseedcopy.cfg<enter>"]
+  boot_command   = ["<esc><wait>auto url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed/preseed.cfg<enter>"]
   boot_iso {
     type = "scsi"
     iso_file = var.iso_file
@@ -117,7 +117,7 @@ source "proxmox-iso" "debian" {
   cores    = var.cores
   sockets  = "1"
   machine  = var.machine_type
-  ssh_timeout = "30m"
+  ssh_timeout = "120m"
   # Remarque : ce mot de passe est nécessaire pour que packer exécute le provisionneur de fichiers, mais
   # une fois cela fait - le mot de passe sera défini sur un mot de passe aléatoire par cloud init.
   ssh_username = "root"
