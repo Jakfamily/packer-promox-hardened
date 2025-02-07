@@ -35,6 +35,18 @@
     - yara
     - dependencies
 
+# Assurer que le répertoire YARA existe avant la copie des règles
+- name: Créer le répertoire /etc/yara s'il n'existe pas
+  ansible.builtin.file:
+    path: "{{ yara_rules_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags:
+    - yara
+    - setup
+
 # Copier les règles YARA depuis le dossier du rôle
 - name: Copier les règles YARA vers le répertoire cible
   ansible.builtin.copy:

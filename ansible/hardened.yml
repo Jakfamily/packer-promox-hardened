@@ -1,6 +1,6 @@
 ---
 - name: Durcissement CIS avec gestion des utilisateurs et services
-  hosts: node1
+  hosts: all
   become: yes
 
   tasks:
