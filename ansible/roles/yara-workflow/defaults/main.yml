@@ -1,13 +1,5 @@
 ---
-yara_dependencies:
-  - automake
-  - libtool
-  - make
-  - gcc
-  - pkg-config
-  - flex
-  - bison
-yara_rules_path: "/etc/yara/"
-yara_scan_target: "/var/log/"
+yara_rules_path: "/etc/yara"
+yara_scan_target: "/var/log"
 yara_cron_minute: "0"
 yara_cron_hour: "2"

@@ -130,6 +130,10 @@ build {
 
   provisioner "ansible" {
     playbook_file = "./ansible/hardened.yml"
-    extra_arguments = ["-vvv"]
+    extra_arguments = [
+      "-vvv",
+      "-e", "ansible_ssh_pipelining=True",
+      "-e", "ansible_ssh_args='-o ControlMaster=auto -o ControlPersist=60s'"
+    ]
   }
 }

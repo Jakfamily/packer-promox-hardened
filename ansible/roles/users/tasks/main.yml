@@ -46,14 +46,14 @@
     - critical
 
 # Renforcer la configuration sudo (requiretty)
-- name: Renforcer la configuration sudo (requiretty)
-  ansible.builtin.lineinfile:
-    path: /etc/sudoers
-    regexp: '^Defaults\s+.*requiretty'
-    line: "Defaults    {{ 'requiretty' if sudo_config.requiretty else '!requiretty' }}"
-    validate: "/usr/sbin/visudo -cf %s"
-  tags:
-    - sudo
+#- name: Renforcer la configuration sudo (requiretty)
+#  ansible.builtin.lineinfile:
+#    path: /etc/sudoers
+#    regexp: '^Defaults\s+.*requiretty'
+#    line: "Defaults    {{ 'requiretty' if sudo_config.requiretty else '!requiretty' }}"
+#    validate: "/usr/sbin/visudo -cf %s"
+#  tags:
+#    - sudo
 
 # Configurer sudo pour ignorer `.` dans $PATH
 - name: Configurer sudo pour ignorer `.` dans $PATH
