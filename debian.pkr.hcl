@@ -132,6 +132,7 @@ build {
     playbook_file = "./ansible/hardened.yml"
     extra_arguments = [
       "-vvv",
+<<<<<<< HEAD
       "-e", "ansible_ssh_args='-o ControlMaster=no -tt'"
     ]
   }
@@ -157,6 +158,10 @@ post-processors {
       # Arrête et supprime la VM temporaire après les tests
       "qm stop 9001",
       "qm destroy 9001 --purge"
+=======
+      "-e", "ansible_ssh_pipelining=True",
+      "-e", "ansible_ssh_args='-o ControlMaster=auto -o ControlPersist=60s'"
+>>>>>>> cea2b0d092259fc29ef82d2e14d97b9fe7389e03
     ]
   }
 }

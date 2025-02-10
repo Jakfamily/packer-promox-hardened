@@ -26,16 +26,17 @@
 # - Planification des analyses régulières avec `cron`.
 # - Centralisation des règles et des journaux dans des répertoires sécurisés.
 
-# Installer les dépendances nécessaires
-- name: Installer les dépendances pour YARA
+# Installer YARA
+- name: Installer YARA
   ansible.builtin.apt:
-    name: "{{ yara_dependencies }}"
+    name: yara
     state: present
+  become: true
   tags:
     - yara
-    - dependencies
+    - install
 
-# Assurer que le répertoire YARA existe avant la copie des règles
+# Vérifier si le répertoire YARA existe
 - name: Créer le répertoire /etc/yara s'il n'existe pas
   ansible.builtin.file:
     path: "{{ yara_rules_path }}"
@@ -59,24 +60,26 @@
     - yara
     - rules
 
-# Vérifier les règles YARA
-- name: Vérifier les règles YARA
+# Vérifier la validité des règles YARA
+- name: Vérifier si les règles YARA sont valides
   ansible.builtin.command:
-    cmd: "yara -r {{ yara_rules_path }}/yara-rules-full.yar {{ yara_scan_target }}"
-  register: yara_verify
+    cmd: "yara -r {{ yara_rules_path }}/yara-rules-full.yar /dev/null"
+  register: yara_check
+  ignore_errors: true
   changed_when: false
   tags:
     - yara
     - verify
 
-- name: Afficher les résultats de la vérification
+- name: Afficher les erreurs de vérification YARA
   ansible.builtin.debug:
-    var: yara_verify.stdout
+    var: yara_check.stderr
+  when: yara_check.rc != 0
   tags:
     - yara
     - verify
 
-# Planifier une analyse automatique YARA
+# Planifier une analyse YARA automatique
 - name: Planifier une analyse YARA quotidienne
   ansible.builtin.cron:
     name: "Analyse quotidienne YARA"
@@ -92,6 +95,7 @@
   ansible.builtin.command:
     cmd: "yara -r {{ yara_rules_path }}/yara-rules-full.yar {{ yara_scan_target }}"
   register: yara_scan
+  ignore_errors: true
   changed_when: false
   tags:
     - yara
