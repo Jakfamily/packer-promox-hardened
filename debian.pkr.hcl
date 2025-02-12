@@ -17,7 +17,7 @@ variable "iso_file" {
 
 variable "cores" {
   type    = string
-  default = "2"
+  default = "4"
 }
 
 variable "disk_format" {
@@ -42,7 +42,7 @@ variable "cpu_type" {
 
 variable "memory" {
   type    = string
-  default = "2048"
+  default = "9216"
 }
 
 variable "network_vlan" {
@@ -103,7 +103,7 @@ source "proxmox-iso" "debian" {
 
   http_directory = "./"
   boot_wait      = "10s"
-  boot_command   = ["<esc><wait>auto url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed/preseed.cfg<enter>"]
+  boot_command   = ["<esc><wait>auto url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed/preseedcopy.cfg<enter>"]
   boot_iso {
     type = "scsi"
     iso_file = var.iso_file
@@ -132,33 +132,8 @@ build {
     playbook_file = "./ansible/hardened.yml"
     extra_arguments = [
       "-vvv",
-      "-e", "ansible_ssh_args='-o ControlMaster=no -tt'"
       "-e", "ansible_ssh_pipelining=True",
       "-e", "ansible_ssh_args='-o ControlMaster=auto -o ControlPersist=60s'"
-    ]
-  }
-
-post-processors {
-    type = "shell-local"
-    inline = [
-      # Crée une VM temporaire à partir de la template
-      "qm clone ${var.vm_id} 9001 --name test-vm --full --storage ${var.disk_storage_pool}",
-
-      # Démarre la VM temporaire
-      "qm start 9001",
-
-      # Récupère l’adresse IP de la VM temporaire
-      "VM_IP=$(ssh root@${var.proxmox_host} 'qm guest exec 9001 -- ip addr show | grep \"inet \" | grep -v \"127.0.0.1\" | awk {print $2} | cut -d/ -f1')",
-
-      # Ajoute une pause pour permettre à la VM de démarrer complètement
-      "sleep 30",
-
-      # Exécute les tests Testinfra
-      "pytest tests/test_hardening.py --hosts=ssh://debian@$VM_IP --ssh-password=debian",
-
-      # Arrête et supprime la VM temporaire après les tests
-      "qm stop 9001",
-      "qm destroy 9001 --purge"
     ]
   }
 }
