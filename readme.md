@@ -21,7 +21,6 @@ Le workflow se compose de plusieurs étapes clés :
    - Le template final est créé avec toutes les mesures de durcissement
 
 ## Structure des Répertoires
-```
 .
 ├── ansible/
 │   ├── group_vars/       # Variables de groupe Ansible
@@ -41,16 +40,18 @@ Le workflow se compose de plusieurs étapes clés :
 │   │   ├── post_deployment_report/
 │   │   ├── rsyslog/     # Journalisation système
 │   │   ├── ssh-hardening/
-│   │   └── users/       # Gestion des utilisateurs
-│   ├── hardened.yml     # Playbook principal de durcissement
-│   └── inventory.ini    # Inventaire Ansible
+│   │   ├── users/       # Gestion des utilisateurs
+│   │   └── yara-workflow/ # Analyses YARA
+│   └── hardened.yml     # Playbook principal de durcissement
 ├── preseed/
-│   └── preseed.cfg      # Installation automatisée Debian
-├── image/               # Ressources d'images
-├── debian.pkr.hcl       # Configuration Packer
-├── secrets.pkrvars.hcl  # Variables sensibles (gitignored)
+│   ├── preseed.cfg      # Installation automatisée Debian
+│   └── preseedcopy.cfg  # Fichier d'essaie pour pour la partitionement du disk via pressed
+├── tests/               # Tests automatisés
+├── image/              # Ressources d'images
+├── debian.pkr.hcl      # Configuration Packer
+├── secrets.pkrvars.hcl # Variables sensibles (gitignored)
+├── .gitignore          # Configuration Git
 └── README.md
-```
 
 ## Fonctionnalités
 
