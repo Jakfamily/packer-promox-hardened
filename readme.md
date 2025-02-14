@@ -112,12 +112,25 @@ packer validate -var-file=secrets.pkrvars.hcl debian.pkr.hcl
 packer build -var-file=secrets.pkrvars.hcl debian.pkr.hcl
 ```
 
-### 4. Application du Durcissement
-```bash
-# Exécuter le playbook Ansible
-cd ansible
-ansible-playbook -i inventory.ini hardened.yml
-```
+## Informations d'Authentification par Défaut ⚠️
+
+**IMPORTANT**: Les identifiants suivants sont configurés par défaut et doivent être modifiés immédiatement après l'installation :
+
+- **GRUB**:
+  - Utilisateur : `admin`
+  - Mot de passe : `adminpass`
+
+- **Compte système**:
+  - Utilisateur : `debian`
+  - Mot de passe : `admin`
+
+⚠️ **AVERTISSEMENT DE SÉCURITÉ**: Ces identifiants sont destinés uniquement à l'installation initiale. Pour des raisons de sécurité, il est CRUCIAL de les modifier avant toute mise en production.
+
+### Modification des Identifiants
+1. Le mot de passe GRUB peut être modifié dans le rôle `grub-password`
+2. Les mots de passe utilisateurs peuvent être modifiés dans le rôle `users`
+3. Il est recommandé de modifier ces valeurs dans vos variables Ansible avant le déploiement
+
 
 ## Description du Workflow
 
