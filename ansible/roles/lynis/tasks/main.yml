@@ -30,6 +30,13 @@
 
 # ## Notes :
 # Assurez-vous que Lynis est disponible dans les dépôts de votre système ou ajoutez-le à vos dépôts personnalisés.
+- name: Installer lynis
+  apt:
+    name: lynis
+    state: present
+  tags:
+    - lynis
+    - install
 
 # Vérifier si Lynis est installé
 - name: Vérifier si Lynis est installé
